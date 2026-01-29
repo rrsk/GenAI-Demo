@@ -11,13 +11,15 @@ from typing import Optional, List, Dict
 from pathlib import Path
 import uvicorn
 
-from .models import ChatMessage, ChatResponse, UserProfile
+from .models import ChatMessage, ChatResponse, UserProfile, PreferenceUpdate
 from .health_analyzer import get_health_analyzer
 from .weather_service import get_weather_service
 from .ai_service import get_ai_service
 from .ml_service import get_ml_service
 from .web_search_service import get_web_search_service
+from .user_preferences_service import get_preferences_service
 from .config import HOST, PORT
+import re
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -328,27 +330,28 @@ async def chat(request: ChatRequest):
     # Get conversation history
     history = conversation_store.get(request.user_id, [])
     
-    # Generate AI response
-    response = await ai_service.generate_response(
+    # Generate AI response (returns dict with message and optional ui_components)
+    result = await ai_service.generate_response(
         user_message=request.message,
         health_context=health_context,
         weather_data=weather_data,
-        conversation_history=history
+        conversation_history=history,
+        user_id=request.user_id,
     )
-    
+    response_message = result.get("message", "")
+    ui_components = result.get("ui_components")
+
     # Update conversation history
     if request.user_id not in conversation_store:
         conversation_store[request.user_id] = []
-    
     conversation_store[request.user_id].append({"role": "user", "content": request.message})
-    conversation_store[request.user_id].append({"role": "assistant", "content": response})
-    
-    # Keep only last 20 messages
+    conversation_store[request.user_id].append({"role": "assistant", "content": response_message})
     if len(conversation_store[request.user_id]) > 20:
         conversation_store[request.user_id] = conversation_store[request.user_id][-20:]
-    
+
     return {
-        "response": response,
+        "response": response_message,
+        "ui_components": ui_components,
         "user_id": request.user_id,
         "health_summary": {
             "recovery_score": health_context.get("recent_metrics", {}).get("avg_recovery_score"),
@@ -356,7 +359,7 @@ async def chat(request: ChatRequest):
             "hrv": health_context.get("recent_metrics", {}).get("avg_hrv"),
             "health_risks": len(health_context.get("health_risks", []))
         },
-        "weather": weather_data.get("weather_summary") if weather_data else None
+        "weather": weather_data.get("weather_summary") if weather_data else None,
     }
 
 
@@ -366,6 +369,45 @@ async def clear_conversation(user_id: str = "USER_00001"):
     if user_id in conversation_store:
         del conversation_store[user_id]
     return {"message": "Conversation cleared", "user_id": user_id}
+
+
+def _validate_user_id(user_id: str) -> str:
+    """Validate user_id to prevent path traversal / injection."""
+    if not re.match(r"^[A-Za-z0-9_-]+$", user_id) or len(user_id) > 64:
+        raise HTTPException(status_code=400, detail="Invalid user_id format")
+    return user_id
+
+
+@app.get("/api/users/{user_id}/preferences")
+async def get_preferences(user_id: str):
+    """Get user preferences for the learning system."""
+    user_id = _validate_user_id(user_id)
+    prefs_service = get_preferences_service()
+    try:
+        prefs = prefs_service.load_preferences(user_id)
+        return {"status": "ok", "preferences": prefs}
+    except Exception as e:
+        return {"status": "error", "message": str(e), "preferences": {}}
+
+
+@app.post("/api/users/{user_id}/preferences")
+async def save_preference(user_id: str, update: PreferenceUpdate):
+    """Save user preference from UI component interaction."""
+    user_id = _validate_user_id(user_id)
+    prefs_service = get_preferences_service()
+    try:
+        prefs_service.save_preference(
+            user_id=user_id,
+            question_id=update.question_id,
+            category=update.category,
+            selected_options=update.selected_options,
+            skipped=update.skipped,
+        )
+        return {"status": "ok"}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to save preference: {e}")
 
 
 @app.post("/api/meal-plan")

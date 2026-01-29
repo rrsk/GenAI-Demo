@@ -16,10 +16,15 @@ This demonstrates a complete GenAI pipeline:
 - Fallback handling
 """
 
+import json
 import os
-from typing import Dict, Optional, List
+import re
+from typing import Dict, Optional, List, Any
+from pydantic import ValidationError
+
 from .recommendation_engine import get_recommendation_engine, QueryIntent
 from .local_llm_service import get_local_llm_service
+from .models import UIComponent
 
 # Optional external API imports (fallback only)
 try:
@@ -84,78 +89,124 @@ Be concise, supportive, and actionable. Use the pre-computed recommendations as 
         print(f"  - OpenAI API: {'Available' if self.openai_client else 'Not configured'}")
         print(f"  - Anthropic API: {'Available' if self.anthropic_client else 'Not configured'}")
     
+    def _parse_llm_response(self, raw_response: str) -> Dict[str, Any]:
+        """Extract optional JSON block from LLM response and validate ui_components."""
+        out = {"message": raw_response, "ui_components": None}
+        json_match = re.search(r"```json\s*(.*?)\s*```", raw_response, re.DOTALL)
+        if not json_match:
+            return out
+        try:
+            data = json.loads(json_match.group(1).strip())
+            msg = data.get("message")
+            if msg:
+                out["message"] = msg
+            comps = data.get("ui_components")
+            if comps and isinstance(comps, list) and len(comps) > 0:
+                validated = []
+                for c in comps[:1]:  # at most one component
+                    try:
+                        validated.append(UIComponent(**c).model_dump())
+                    except (ValidationError, TypeError):
+                        break
+                if validated:
+                    out["ui_components"] = validated
+        except (json.JSONDecodeError, ValidationError) as e:
+            print(f"[AIService] JSON parse error: {e}")
+        return out
+
     async def generate_response(
         self,
         user_message: str,
         health_context: Dict,
         weather_data: Optional[Dict] = None,
-        conversation_history: Optional[List[Dict]] = None
-    ) -> str:
+        conversation_history: Optional[List[Dict]] = None,
+        user_id: str = "USER_00001",
+    ) -> Dict[str, Any]:
         """
-        Generate AI response for user health query
-        
-        Pipeline:
-        1. Classify user intent
-        2. Generate structured recommendations
-        3. Format context for LLM
-        4. Generate natural language response
+        Generate AI response. Returns dict with "message" (str) and optional "ui_components" (list).
         """
         # Step 1: Classify intent
         intent = self.recommendation_engine.classify_intent(user_message)
-        
-        # Step 2: Generate structured recommendations
+
+        # Step 2: Structured recommendations
         recommendations = self.recommendation_engine.generate_recommendations(
             health_context=health_context,
             intent=intent,
-            weather_data=weather_data
+            weather_data=weather_data,
         )
-        
-        # Step 3: Format for LLM
+
+        # Step 3: Format context and inject preferences
         health_context_text = self.recommendation_engine.format_health_context_for_llm(health_context)
         recommendations_text = self.recommendation_engine.format_recommendations_for_llm(recommendations)
-        
-        # Add weather context if available
+
+        try:
+            from .user_preferences_service import get_preferences_service
+            prefs_service = get_preferences_service()
+            prefs_context = prefs_service.get_context_string(user_id)
+            health_context_text += "\n\n" + prefs_context
+            can_ask = prefs_service.can_ask_question(user_id)
+            existing = (prefs_service.load_preferences(user_id).get("preferences") or {})
+            if can_ask and not existing:
+                health_context_text += """
+
+If you need to learn one preference (dietary, schedule, goals, or feedback), reply with ONLY a JSON block in this exact format:
+```json
+{"message": "Your short message here", "ui_components": [{"type": "multi_select", "question_id": "dietary_restrictions", "prompt": "Do you have any dietary restrictions?", "category": "dietary", "options": [{"id": "vegetarian", "label": "Vegetarian", "emoji": ""}, {"id": "vegan", "label": "Vegan", "emoji": ""}, {"id": "none", "label": "No restrictions", "emoji": ""}], "allow_skip": true}]}
+```
+Ask only ONE question. Otherwise reply with normal text only."""
+        except Exception as e:
+            print(f"[AIService] Preferences unavailable: {e}")
+            can_ask = False
+
         if weather_data:
             weather = weather_data.get("weather_summary", {})
             health_context_text += f"\n\n**Weather:** {weather.get('temperature', 'N/A')}°C, {weather.get('condition', 'Unknown')}"
-        
-        # Step 4: Generate response
+
+        # Step 4: Generate raw response
         response = None
-        
-        # Try Local LLM first
         if self.use_local_llm and self.local_llm:
             try:
                 response = self.local_llm.generate_response(
                     user_message=user_message,
                     health_context=health_context_text,
-                    recommendations=recommendations_text
+                    recommendations=recommendations_text,
                 )
-                if response and len(response) > 50:
-                    return self._format_response(response, intent)
+                if response and len(response) > 20:
+                    parsed = self._parse_llm_response(response)
+                    message = self._format_response(parsed["message"], intent)
+                    if parsed.get("ui_components"):
+                        try:
+                            from .user_preferences_service import get_preferences_service
+                            get_preferences_service().record_question_asked(
+                                user_id, parsed["ui_components"][0]["question_id"]
+                            )
+                        except Exception:
+                            pass
+                    return {"message": message, "ui_components": parsed.get("ui_components")}
             except Exception as e:
                 print(f"[AIService] Local LLM error: {e}")
-        
-        # Fallback to external APIs if available
+
         if not response and (self.openai_client or self.anthropic_client):
             try:
                 response = await self._call_external_api(
                     user_message,
                     health_context_text,
                     recommendations_text,
-                    conversation_history
+                    conversation_history,
                 )
                 if response:
-                    return response
+                    parsed = self._parse_llm_response(response)
+                    msg = parsed["message"]
+                    if not msg.startswith("#"):
+                        msg = "## WellnessAI Analysis\n\n" + msg
+                    return {"message": msg, "ui_components": parsed.get("ui_components")}
             except Exception as e:
                 print(f"[AIService] External API error: {e}")
-        
-        # Final fallback: Rule-based response
-        return self._generate_rule_based_response(
-            user_message,
-            health_context,
-            weather_data,
-            recommendations
+
+        fallback = self._generate_rule_based_response(
+            user_message, health_context, weather_data, recommendations
         )
+        return {"message": fallback, "ui_components": None}
     
     def _format_response(self, response: str, intent: QueryIntent) -> str:
         """Format LLM response with appropriate headers"""

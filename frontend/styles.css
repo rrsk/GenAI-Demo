@@ -1372,6 +1372,127 @@ body {
     font-style: italic;
 }
 
+/* UI Components - Learning System */
+.ui-component {
+    margin-top: 20px;
+    padding: 20px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    transition: all var(--transition-base);
+}
+
+.ui-component.submitting {
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+.ui-component.submitted {
+    border-color: var(--accent-primary);
+    background: var(--accent-primary-dim);
+}
+
+.ui-component.error {
+    border-color: var(--accent-danger);
+}
+
+.ui-prompt {
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    margin-bottom: 16px;
+    font-weight: 500;
+}
+
+.ui-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 16px 0;
+}
+
+.ui-component .option-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    background: var(--bg-secondary);
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all var(--transition-base);
+}
+
+.ui-component .option-label:hover {
+    border-color: var(--border-hover);
+}
+
+.ui-component .option-label input {
+    display: none;
+}
+
+.ui-component .option-label .option-check {
+    opacity: 0;
+    color: var(--accent-primary);
+    transition: opacity var(--transition-fast);
+}
+
+.ui-component .option-label:has(input:checked) {
+    background: var(--accent-primary-dim);
+    border-color: var(--accent-primary);
+}
+
+.ui-component .option-label:has(input:checked) .option-check {
+    opacity: 1;
+}
+
+.ui-component .option-emoji {
+    font-size: 1.1rem;
+}
+
+.ui-component .ui-submit-btn,
+.ui-component .ui-skip-btn,
+.ui-component .ui-retry-btn {
+    padding: 12px 24px;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-base);
+    font-size: 0.9rem;
+}
+
+.ui-component .ui-submit-btn {
+    background: var(--accent-primary);
+    color: var(--text-inverse);
+    border: none;
+}
+
+.ui-component .ui-submit-btn:hover {
+    filter: brightness(1.1);
+}
+
+.ui-component .ui-skip-btn {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+    margin-left: 10px;
+}
+
+.ui-component .ui-skip-btn:hover {
+    border-color: var(--border-hover);
+    color: var(--text-primary);
+}
+
+.ui-component .ui-retry-btn {
+    background: var(--accent-danger);
+    color: white;
+    border: none;
+    margin-top: 10px;
+}
+
+.ui-component .ui-retry-btn:hover {
+    filter: brightness(1.1);
+}
+
 /* Chat Input - Enhanced */
 .chat-input-container {
     padding: 24px 32px;

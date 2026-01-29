@@ -556,9 +556,9 @@ class HealthMLService:
         
         insights = []
         
-        # Sleep vs Recovery correlation
+        # Sleep vs Recovery correlation (lowered threshold)
         sleep_recovery_corr = user_data['sleep_hours'].corr(user_data['recovery_score'])
-        if abs(sleep_recovery_corr) > 0.3:
+        if abs(sleep_recovery_corr) > 0.15:
             direction = "positively" if sleep_recovery_corr > 0 else "negatively"
             insights.append({
                 "title": "Sleep & Recovery Connection",
@@ -567,11 +567,11 @@ class HealthMLService:
                 "type": "sleep_recovery"
             })
         
-        # Strain vs Next Day Recovery
+        # Strain vs Next Day Recovery (lowered threshold)
         user_data_shifted = user_data.copy()
         user_data_shifted['next_recovery'] = user_data_shifted['recovery_score'].shift(-1)
         strain_recovery_corr = user_data_shifted['day_strain'].corr(user_data_shifted['next_recovery'])
-        if abs(strain_recovery_corr) > 0.2:
+        if abs(strain_recovery_corr) > 0.1:
             insights.append({
                 "title": "Strain Impact on Recovery",
                 "description": f"Higher strain days tend to {'decrease' if strain_recovery_corr < 0 else 'increase'} next-day recovery by {abs(strain_recovery_corr):.0%}.",
@@ -579,9 +579,9 @@ class HealthMLService:
                 "type": "strain_recovery"
             })
         
-        # HRV vs Recovery
+        # HRV vs Recovery (lowered threshold)
         hrv_recovery_corr = user_data['hrv'].corr(user_data['recovery_score'])
-        if abs(hrv_recovery_corr) > 0.3:
+        if abs(hrv_recovery_corr) > 0.15:
             insights.append({
                 "title": "HRV as Recovery Predictor",
                 "description": f"Your HRV strongly correlates with recovery ({hrv_recovery_corr:.0%}). HRV is a reliable indicator of your readiness.",
@@ -589,9 +589,9 @@ class HealthMLService:
                 "type": "hrv_recovery"
             })
         
-        # Deep sleep importance
+        # Deep sleep importance (lowered threshold)
         deep_sleep_corr = user_data['deep_sleep_hours'].corr(user_data['recovery_score'])
-        if abs(deep_sleep_corr) > 0.25:
+        if abs(deep_sleep_corr) > 0.1:
             insights.append({
                 "title": "Deep Sleep Quality",
                 "description": f"Deep sleep has a {abs(deep_sleep_corr):.0%} correlation with your recovery. Prioritize sleep quality over quantity.",
@@ -599,7 +599,40 @@ class HealthMLService:
                 "type": "deep_sleep"
             })
         
-        return {"insights": sorted(insights, key=lambda x: x['strength'], reverse=True)[:4]}
+        # Always add trend-based insights
+        recent_week = user_data.tail(7)
+        previous_week = user_data.tail(14).head(7)
+        
+        if len(recent_week) >= 5 and len(previous_week) >= 5:
+            # Recovery trend
+            recent_recovery = recent_week['recovery_score'].mean()
+            prev_recovery = previous_week['recovery_score'].mean()
+            recovery_change = ((recent_recovery - prev_recovery) / prev_recovery) * 100 if prev_recovery > 0 else 0
+            
+            if abs(recovery_change) > 3:
+                trend = "improving" if recovery_change > 0 else "declining"
+                emoji = "📈" if recovery_change > 0 else "📉"
+                insights.append({
+                    "title": f"Recovery Trend {emoji}",
+                    "description": f"Your recovery is {trend} by {abs(recovery_change):.0f}% compared to last week. {'Keep up the good work!' if recovery_change > 0 else 'Consider more rest.'}",
+                    "strength": min(abs(recovery_change) / 20, 0.8),
+                    "type": "recovery_trend"
+                })
+            
+            # Activity consistency
+            strain_std = recent_week['day_strain'].std()
+            avg_strain = recent_week['day_strain'].mean()
+            consistency = 1 - (strain_std / avg_strain) if avg_strain > 0 else 0
+            
+            if consistency > 0.5:
+                insights.append({
+                    "title": "Activity Consistency 🎯",
+                    "description": f"Your activity levels are {int(consistency * 100)}% consistent this week. Consistency helps your body adapt and recover better.",
+                    "strength": consistency * 0.6,
+                    "type": "consistency"
+                })
+        
+        return {"insights": sorted(insights, key=lambda x: x['strength'], reverse=True)[:5]}
 
 
 # Singleton instance

@@ -31,6 +31,7 @@ load_dotenv()
 BASE_DIR = Path(__file__).parent.parent
 DATA_DIR = BASE_DIR / "Whoop Data"
 WHOOP_DATA_PATH = DATA_DIR / "whoop_fitness_dataset_100k.csv"
+USER_DATA_DIR = BASE_DIR / "user_data"
 
 # Model cache directory
 MODELS_DIR = BASE_DIR / "models"

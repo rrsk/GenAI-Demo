@@ -355,19 +355,70 @@ function setupOnboarding() {
 }
 
 // ============ Floating Ask Button ============
+let currentView = 'chat';
+
 function setupFloatingButton() {
     const floatingBtn = document.getElementById('floatingAskBtn');
     if (floatingBtn) {
         floatingBtn.addEventListener('click', () => {
-            // Switch to chat view if on dashboard
             if (currentView !== 'chat') {
+                // Generate a contextual question based on current health data
+                const contextualQuestion = generateContextualQuestion();
                 switchView('chat');
+                
+                // Pre-fill the chat input with contextual question
+                if (contextualQuestion) {
+                    elements.chatInput.value = contextualQuestion;
+                    elements.chatInput.focus();
+                    // Auto-resize the input
+                    elements.chatInput.style.height = 'auto';
+                    elements.chatInput.style.height = elements.chatInput.scrollHeight + 'px';
+                }
             }
-            // Focus the input
-            elements.chatInput.focus();
-            // Scroll to input
-            elements.chatInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
         });
+        
+        // Initially hide on chat view
+        updateFloatingButtonVisibility();
+    }
+}
+
+function generateContextualQuestion() {
+    // Generate a relevant question based on current health metrics
+    const recovery = elements.recoveryScore?.textContent;
+    const sleep = elements.sleepHours?.textContent;
+    
+    const questions = [];
+    
+    if (recovery && parseFloat(recovery) < 60) {
+        questions.push("My recovery is low today. What should I eat to help me recover?");
+        questions.push("I'm not feeling my best. What activities would you recommend?");
+    } else if (recovery && parseFloat(recovery) >= 80) {
+        questions.push("I'm feeling great today! What's a good challenging workout?");
+        questions.push("My energy is high. What should I eat to maintain this?");
+    }
+    
+    if (sleep && parseFloat(sleep) < 6) {
+        questions.push("I didn't sleep well. What foods help with energy?");
+        questions.push("How can I improve my sleep quality tonight?");
+    }
+    
+    // Add some general questions as fallback
+    questions.push("What should I eat today based on my health data?");
+    questions.push("Give me a personalized meal plan for today");
+    questions.push("What are my health insights for this week?");
+    
+    // Return a random question from the relevant ones
+    return questions[Math.floor(Math.random() * Math.min(questions.length, 3))];
+}
+
+function updateFloatingButtonVisibility() {
+    const floatingBtn = document.getElementById('floatingAskBtn');
+    if (floatingBtn) {
+        if (currentView === 'chat') {
+            floatingBtn.style.display = 'none';
+        } else {
+            floatingBtn.style.display = 'flex';
+        }
     }
 }
 
@@ -594,6 +645,10 @@ function switchView(view) {
             loadSystemStatus();
         }
     }
+    
+    // Track current view and update floating button visibility
+    currentView = view;
+    updateFloatingButtonVisibility();
 }
 
 // Scroll observer
@@ -916,7 +971,13 @@ async function sendChatMessage() {
         removeTypingIndicator(typingId);
         
         setTimeout(() => {
-            addMessage(data.response, 'assistant');
+            const msgEl = addMessage(data.response, 'assistant');
+            if (data.ui_components && data.ui_components.length && msgEl) {
+                const contentDiv = msgEl.querySelector('.message-content');
+                if (contentDiv) {
+                    data.ui_components.forEach(comp => contentDiv.appendChild(renderUIComponent(comp)));
+                }
+            }
             if (data.health_summary) updateQuickStats(data.health_summary);
         }, 200);
         
@@ -1712,6 +1773,187 @@ function updateCharts(trends) {
     }
 }
 
+// ============ UI Component State (Learning System) ============
+const componentStates = new Map();
+const ComponentState = { PENDING: 'pending', SUBMITTING: 'submitting', SUBMITTED: 'submitted', ERROR: 'error' };
+
+function escapeHtml(str) {
+    if (str == null) return '';
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
+function renderUIComponent(component) {
+    const componentId = `${component.question_id}_${Date.now()}`;
+    componentStates.set(componentId, { state: ComponentState.PENDING, selectedOptions: [] });
+
+    const container = document.createElement('div');
+    container.className = `ui-component ${component.type}`;
+    container.dataset.componentId = componentId;
+    container.dataset.questionId = component.question_id;
+    container.dataset.category = component.category;
+
+    container.innerHTML = `<p class="ui-prompt">${escapeHtml(component.prompt)}</p>`;
+    const optionsDiv = document.createElement('div');
+    optionsDiv.className = 'ui-options';
+
+    const isMulti = component.type === 'multi_select';
+    const inputType = isMulti ? 'checkbox' : 'radio';
+    (component.options || []).forEach(opt => {
+        const label = document.createElement('label');
+        label.className = 'option-label';
+        label.dataset.optionId = escapeHtml(opt.id);
+        label.innerHTML = `
+            <input type="${inputType}" name="${componentId}" value="${escapeHtml(opt.id)}">
+            <span class="option-content">
+                ${opt.emoji ? `<span class="option-emoji">${escapeHtml(opt.emoji)}</span>` : ''}
+                <span class="option-text">${escapeHtml(opt.label)}</span>
+            </span>
+            <span class="option-check" aria-hidden="true">✓</span>
+        `;
+        optionsDiv.appendChild(label);
+    });
+    container.appendChild(optionsDiv);
+
+    const submitBtn = document.createElement('button');
+    submitBtn.type = 'button';
+    submitBtn.className = 'ui-submit-btn';
+    submitBtn.textContent = 'Continue';
+    submitBtn.onclick = () => handleComponentSubmit(componentId, container);
+    container.appendChild(submitBtn);
+
+    if (component.allow_skip !== false) {
+        const skipBtn = document.createElement('button');
+        skipBtn.type = 'button';
+        skipBtn.className = 'ui-skip-btn';
+        skipBtn.textContent = 'Skip';
+        skipBtn.onclick = () => handleComponentSkip(componentId, container);
+        container.appendChild(skipBtn);
+    }
+
+    return container;
+}
+
+async function fetchWithRetry(url, options, maxRetries) {
+    let lastErr;
+    for (let i = 0; i < maxRetries; i++) {
+        try {
+            const res = await fetch(url, options);
+            return await res.json();
+        } catch (e) {
+            lastErr = e;
+            if (i < maxRetries - 1) await new Promise(r => setTimeout(r, 1000 * (i + 1)));
+        }
+    }
+    throw lastErr;
+}
+
+async function handleComponentSubmit(componentId, container) {
+    const state = componentStates.get(componentId);
+    if (!state || state.state !== ComponentState.PENDING) return;
+
+    const inputs = container.querySelectorAll('input:checked');
+    const selectedOptions = Array.from(inputs).map(i => i.value);
+    if (selectedOptions.length === 0) {
+        showNotification('Please select at least one option', 'info');
+        return;
+    }
+
+    state.state = ComponentState.SUBMITTING;
+    state.selectedOptions = selectedOptions;
+    container.classList.add('submitting');
+
+    const questionId = container.dataset.questionId;
+    const category = container.dataset.category;
+
+    try {
+        const data = await fetchWithRetry(
+            `${API_BASE}/users/${currentUserId}/preferences`,
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    question_id: questionId,
+                    category: category,
+                    selected_options: selectedOptions,
+                    skipped: false
+                })
+            },
+            3
+        );
+
+        if (data.status === 'ok') {
+            state.state = ComponentState.SUBMITTED;
+            container.classList.remove('submitting');
+            container.classList.add('submitted');
+            showNotification('Preference saved!', 'success');
+            addSystemMessage(`Got it! I'll remember your ${category} preferences.`);
+        } else {
+            throw new Error(data.message || 'Failed to save');
+        }
+    } catch (error) {
+        console.error('Preference save error:', error);
+        state.state = ComponentState.ERROR;
+        container.classList.remove('submitting');
+        container.classList.add('error');
+        showNotification('Failed to save preference. Please try again.', 'error');
+        const retryBtn = document.createElement('button');
+        retryBtn.type = 'button';
+        retryBtn.className = 'ui-retry-btn';
+        retryBtn.textContent = 'Retry';
+        retryBtn.onclick = () => {
+            container.classList.remove('error');
+            retryBtn.remove();
+            state.state = ComponentState.PENDING;
+            handleComponentSubmit(componentId, container);
+        };
+        container.appendChild(retryBtn);
+    }
+}
+
+async function handleComponentSkip(componentId, container) {
+    const state = componentStates.get(componentId);
+    if (!state || state.state !== ComponentState.PENDING) return;
+
+    state.state = ComponentState.SUBMITTING;
+    container.classList.add('submitting');
+
+    const questionId = container.dataset.questionId;
+    const category = container.dataset.category;
+
+    try {
+        const data = await fetchWithRetry(
+            `${API_BASE}/users/${currentUserId}/preferences`,
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    question_id: questionId,
+                    category: category,
+                    selected_options: [],
+                    skipped: true
+                })
+            },
+            3
+        );
+
+        if (data.status === 'ok') {
+            state.state = ComponentState.SUBMITTED;
+            container.classList.remove('submitting');
+            container.classList.add('submitted');
+            addSystemMessage(`Skipped. You can share ${category} preferences anytime.`);
+        } else {
+            throw new Error(data.message || 'Failed to save');
+        }
+    } catch (error) {
+        console.error('Preference skip error:', error);
+        state.state = ComponentState.ERROR;
+        container.classList.remove('submitting');
+        showNotification('Something went wrong. Please try again.', 'error');
+    }
+}
+
 // ============ Message Functions ============
 function addMessage(content, type) {
     const messageDiv = document.createElement('div');
@@ -1739,6 +1981,7 @@ function addMessage(content, type) {
     
     elements.chatMessages.appendChild(messageDiv);
     scrollToBottom();
+    return messageDiv;
 }
 
 function addSystemMessage(content) {
