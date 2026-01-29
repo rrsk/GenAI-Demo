@@ -1,0 +1,57 @@
+# ============================================
+# WellnessAI - Dependencies
+# ============================================
+
+# Backend Framework
+fastapi>=0.109.0
+uvicorn>=0.27.0
+python-dotenv>=1.0.0
+python-multipart>=0.0.6
+aiofiles>=23.2.1
+pydantic>=2.6.0
+
+# Data Analysis
+pandas>=2.2.0
+numpy>=1.26.0
+
+# Machine Learning (Scikit-learn)
+scikit-learn>=1.4.0
+
+# HTTP Client (for Weather API)
+httpx>=0.26.0
+
+# ============================================
+# Local LLM - HuggingFace Transformers
+# ============================================
+# Core ML Framework
+torch>=2.1.0
+
+# HuggingFace Transformers
+transformers>=4.36.0
+
+# Model Loading Optimization
+accelerate>=0.25.0
+
+# 8-bit Quantization (optional, for GPU)
+# bitsandbytes>=0.41.0  # Uncomment if using GPU quantization
+
+# Tokenizers
+sentencepiece>=0.1.99
+
+# Additional dependencies for specific models
+protobuf>=4.0.0
+sacremoses>=0.1.0
+
+# ============================================
+# Optional: External AI APIs (not required)
+# ============================================
+# Only needed if you want API fallback
+# openai>=1.12.0
+# anthropic>=0.18.0
+
+# ============================================
+# Development
+# ============================================
+# pytest>=7.4.0
+# black>=23.0.0
+# ruff>=0.1.0
