@@ -505,8 +505,8 @@ class HealthRecommendationEngine:
         
         return "\n".join(parts)
     
-    def format_health_context_for_llm(self, health_context: Dict) -> str:
-        """Format health context as structured text for LLM"""
+    def format_health_context_for_llm(self, health_context: Dict, forecasts: List[Dict] = None) -> str:
+        """Format health context as structured text for LLM, including forecasts"""
         parts = []
         
         # Profile summary
@@ -526,12 +526,83 @@ class HealthRecommendationEngine:
 - Resting HR: {metrics.get('avg_resting_hr', 'N/A')} bpm
 - Daily Strain: {metrics.get('avg_strain', 'N/A')}""")
         
+        # LSTM Forecasts (3-day predictions)
+        if forecasts:
+            forecast_lines = ["**3-Day Health Forecast (LSTM Predictions):**"]
+            for day in forecasts[:3]:
+                forecast_lines.append(
+                    f"- Day {day.get('day', '?')} ({day.get('date', 'N/A')}): "
+                    f"Recovery {day.get('recovery_score', 0):.0f}%, "
+                    f"Sleep {day.get('sleep_hours', 0):.1f}h, "
+                    f"HRV {day.get('hrv', 0):.0f}ms"
+                )
+            
+            # Add forecast insights
+            if len(forecasts) >= 2:
+                avg_recovery = sum(f.get('recovery_score', 65) for f in forecasts[:3]) / min(3, len(forecasts))
+                if avg_recovery < 50:
+                    forecast_lines.append("**Alert:** Low recovery predicted - recommend reducing activity intensity")
+                elif avg_recovery > 75:
+                    forecast_lines.append("**Outlook:** Strong recovery ahead - good time for challenging workouts")
+            
+            parts.append("\n".join(forecast_lines))
+        
         # Health risks
         if risks := health_context.get("health_risks"):
             risk_text = "\n".join([f"- {r.get('risk', 'Unknown')}: {r.get('dietary_impact', '')}" for r in risks[:3]])
             parts.append(f"**Health Concerns:**\n{risk_text}")
         
         return "\n\n".join(parts)
+    
+    def generate_proactive_recommendations(self, forecasts: List[Dict]) -> List[Recommendation]:
+        """Generate proactive recommendations based on LSTM predictions"""
+        recommendations = []
+        
+        if not forecasts:
+            return recommendations
+        
+        for day in forecasts[:3]:
+            day_num = day.get('day', 1)
+            date = day.get('date', 'upcoming')
+            recovery = day.get('recovery_score', 65)
+            sleep_hours = day.get('sleep_hours', 7)
+            
+            # Low recovery warning
+            if recovery < 50:
+                db = self.nutrition_db.get("recovery_optimization", {})
+                recommendations.append(Recommendation(
+                    category="Forecast Alert",
+                    title=f"Day {day_num}: Low Recovery Predicted ({recovery:.0f}%)",
+                    description=f"On {date}, your recovery may be low. Plan accordingly.",
+                    priority=1,
+                    actions=[
+                        "Consider lighter activities or rest day",
+                        "Prioritize sleep tonight",
+                        "Focus on anti-inflammatory foods",
+                        "Stay well hydrated"
+                    ],
+                    foods=db.get("foods", [])[:3],
+                    avoid=db.get("avoid", [])[:2]
+                ))
+            
+            # Sleep deficit warning
+            if sleep_hours < 6:
+                db = self.nutrition_db.get("sleep_support", {})
+                recommendations.append(Recommendation(
+                    category="Forecast Alert",
+                    title=f"Day {day_num}: Sleep May Be Insufficient ({sleep_hours:.1f}h)",
+                    description=f"Predicted low sleep on {date}. Take preventive action.",
+                    priority=2,
+                    actions=[
+                        "Set earlier bedtime reminder",
+                        "Avoid caffeine after 2pm",
+                        "Create calm evening routine"
+                    ],
+                    foods=db.get("foods", [])[:3],
+                    avoid=db.get("avoid", [])[:2]
+                ))
+        
+        return recommendations
 
 
 # Singleton instance

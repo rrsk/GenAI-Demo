@@ -3353,3 +3353,200 @@ body {
         width: 100%;
     }
 }
+
+/* ============ 3-Day Forecast Section ============ */
+.forecast-section {
+    margin-bottom: 32px;
+}
+
+.forecast-section .section-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 20px;
+}
+
+.forecast-section .section-title svg {
+    width: 24px;
+    height: 24px;
+    color: var(--accent-primary);
+}
+
+.forecast-badge {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 4px 10px;
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.3) 0%, rgba(192, 132, 252, 0.2) 100%);
+    color: #c084fc;
+    border-radius: var(--radius-full);
+    border: 1px solid rgba(192, 132, 252, 0.3);
+}
+
+.forecast-cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+}
+
+.forecast-loading {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 40px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
+.loading-pulse {
+    width: 12px;
+    height: 12px;
+    background: var(--accent-primary);
+    border-radius: 50%;
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 0.4; transform: scale(0.8); }
+    50% { opacity: 1; transform: scale(1); }
+}
+
+.forecast-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    transition: all var(--transition-base);
+    position: relative;
+    overflow: hidden;
+}
+
+.forecast-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
+}
+
+.forecast-card.excellent::before {
+    background: linear-gradient(90deg, #00ff88, #00d4ff);
+}
+
+.forecast-card.good::before {
+    background: linear-gradient(90deg, #4ade80, #22d3ee);
+}
+
+.forecast-card.moderate::before {
+    background: linear-gradient(90deg, #fbbf24, #fb923c);
+}
+
+.forecast-card.poor::before {
+    background: linear-gradient(90deg, #f87171, #ef4444);
+}
+
+.forecast-card:hover {
+    border-color: var(--border-hover);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.forecast-day {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 2px;
+}
+
+.forecast-date {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.forecast-metrics {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.forecast-metric {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.forecast-metric .metric-icon {
+    font-size: 1.1rem;
+    width: 24px;
+    text-align: center;
+}
+
+.forecast-metric .metric-value {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    min-width: 50px;
+}
+
+.forecast-metric .metric-label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Forecast card status colors */
+.forecast-card.excellent .metric-value {
+    color: #00ff88;
+}
+
+.forecast-card.good .metric-value {
+    color: #4ade80;
+}
+
+.forecast-card.moderate .metric-value {
+    color: #fbbf24;
+}
+
+.forecast-card.poor .metric-value {
+    color: #f87171;
+}
+
+/* Responsive forecast cards */
+@media (max-width: 900px) {
+    .forecast-cards {
+        grid-template-columns: 1fr;
+    }
+    
+    .forecast-card {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 16px;
+        align-items: center;
+    }
+    
+    .forecast-metrics {
+        flex-direction: row;
+        gap: 20px;
+    }
+    
+    .forecast-date {
+        margin-bottom: 0;
+        padding-bottom: 0;
+        border-bottom: none;
+    }
+}

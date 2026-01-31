@@ -14,19 +14,20 @@ from backend.config import HOST, PORT
 
 if __name__ == "__main__":
     print("""
-    ╔═══════════════════════════════════════════════════════════════╗
-    ║                                                               ║
-    ║   🌿 WellnessAI - Your Personal Health Assistant              ║
-    ║                                                               ║
-    ║   Starting server at http://localhost:8000                    ║
-    ║                                                               ║
-    ║   Features:                                                   ║
-    ║   • Personalized meal plans based on Whoop data               ║
-    ║   • Weather-adapted health recommendations                    ║
-    ║   • AI-powered health insights                                ║
-    ║   • Sleep and recovery optimization                           ║
-    ║                                                               ║
-    ╚═══════════════════════════════════════════════════════════════╝
+    ===============================================================
+    
+       WellnessAI - Your Personal Health Assistant              
+    
+       Starting server at http://localhost:8000                    
+                                                                 
+       Features:                                                   
+       - Personalized meal plans based on Whoop data               
+       - Weather-adapted health recommendations                    
+       - AI-powered health insights                                
+       - Sleep and recovery optimization                           
+       - LSTM 7-day health forecasting
+                                                                 
+    ===============================================================
     """)
     
     uvicorn.run(

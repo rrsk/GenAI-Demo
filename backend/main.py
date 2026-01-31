@@ -16,6 +16,7 @@ from .health_analyzer import get_health_analyzer
 from .weather_service import get_weather_service
 from .ai_service import get_ai_service
 from .ml_service import get_ml_service
+from .lstm_service import get_lstm_service
 from .web_search_service import get_web_search_service
 from .user_preferences_service import get_preferences_service
 from .config import HOST, PORT
@@ -179,6 +180,7 @@ async def system_status():
     health_analyzer = get_health_analyzer()
     ml_service = get_ml_service()
     weather_service = get_weather_service()
+    lstm_service = get_lstm_service()
     
     return {
         "system": "WellnessAI",
@@ -196,6 +198,12 @@ async def system_status():
             "ml_predictions": {
                 "status": "active",
                 "models": ["recovery_predictor", "strain_predictor", "risk_classifier"]
+            },
+            "lstm_forecasting": {
+                "status": "active" if lstm_service.get_model_status()["model_exists"] else "unavailable",
+                "model": "PyTorch LSTM",
+                "forecast_horizon": "7 days",
+                "sequence_length": "21 days"
             },
             "health_analyzer": {
                 "status": "active",
@@ -218,7 +226,8 @@ async def system_status():
             "Intent Classification",
             "Context Augmentation (Weather + Health)",
             "Web Search (RAG)",
-            "ML Predictions (Scikit-learn)"
+            "ML Predictions (Scikit-learn)",
+            "LSTM Health Forecasting (PyTorch)"
         ]
     }
 
@@ -473,6 +482,48 @@ async def get_all_predictions(user_id: str):
     }
 
 
+# ============ LSTM Forecast Endpoints ============
+
+@app.get("/api/users/{user_id}/predictions/lstm-forecast")
+async def predict_lstm_forecast(user_id: str, days: int = 7):
+    """
+    Get LSTM 7-day health forecast
+    
+    Uses trained PyTorch LSTM model to predict health metrics for the next 7 days
+    based on 21 days of historical data.
+    """
+    lstm_service = get_lstm_service()
+    forecast = lstm_service.predict_forecast(user_id)
+    return forecast
+
+
+@app.get("/api/users/{user_id}/predictions/lstm-status")
+async def get_lstm_model_status(user_id: str):
+    """Get LSTM model status and metadata"""
+    lstm_service = get_lstm_service()
+    status = lstm_service.get_model_status()
+    
+    # Check if user has enough data
+    analyzer = get_health_analyzer()
+    df = analyzer.df
+    if df is not None:
+        user_data = df[df['user_id'] == user_id]
+        status['user_data_days'] = len(user_data)
+        status['has_sufficient_data'] = len(user_data) >= 21
+    
+    return status
+
+
+@app.get("/api/lstm-status")
+async def get_lstm_system_status():
+    """Get LSTM system-wide status"""
+    lstm_service = get_lstm_service()
+    return {
+        "service": "LSTM Health Forecasting",
+        "status": lstm_service.get_model_status()
+    }
+
+
 # ============ Chart Data Endpoints ============
 
 @app.get("/api/users/{user_id}/charts/trends")
@@ -490,10 +541,20 @@ async def get_correlation_insights(user_id: str):
 
 
 @app.get("/api/users/{user_id}/dashboard")
-async def get_dashboard_data(user_id: str, days: int = 30):
-    """Get comprehensive dashboard data including predictions and trends"""
+async def get_dashboard_data(user_id: str, days: int = 30, forecast_days: int = 3):
+    """Get comprehensive dashboard data including predictions, trends, and LSTM forecasts"""
     analyzer = get_health_analyzer()
     ml_service = get_ml_service()
+    lstm_service = get_lstm_service()
+    
+    # Get LSTM forecast
+    forecast_response = lstm_service.predict_forecast(user_id)
+    forecast_data = []
+    forecast_enabled = False
+    
+    if forecast_response.get('status') == 'success':
+        forecast_data = forecast_response.get('predictions', [])[:forecast_days]
+        forecast_enabled = True
     
     return {
         "user_id": user_id,
@@ -504,6 +565,13 @@ async def get_dashboard_data(user_id: str, days: int = 30):
             "recovery": ml_service.predict_recovery(user_id),
             "strain": ml_service.predict_optimal_strain(user_id),
             "risk": ml_service.predict_health_risk(user_id)
+        },
+        "forecasts": forecast_data,
+        "forecast_metadata": {
+            "enabled": forecast_enabled,
+            "model": forecast_response.get('model', 'N/A'),
+            "days": len(forecast_data),
+            "status": forecast_response.get('status')
         },
         "correlations": ml_service.get_correlation_insights(user_id),
         "health_risks": analyzer.identify_health_risks(user_id)

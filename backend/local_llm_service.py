@@ -179,17 +179,13 @@ class LocalLLMService:
             if self.tokenizer.pad_token is None:
                 self.tokenizer.pad_token = self.tokenizer.eos_token
             
-            # Quantization config for efficiency
+            # GPU loading with fp16 for best performance on RTX GPUs
             if self.device == "cuda" and torch.cuda.is_available():
-                # Use 8-bit quantization on GPU
-                quantization_config = BitsAndBytesConfig(
-                    load_in_8bit=True,
-                    bnb_8bit_compute_dtype=torch.float16
-                )
+                print(f"[LocalLLM] Loading on GPU with fp16 for fast inference...")
                 self.model = AutoModelForCausalLM.from_pretrained(
                     model_name,
                     cache_dir=str(self.cache_dir),
-                    quantization_config=quantization_config,
+                    torch_dtype=torch.float16,
                     device_map="auto",
                     trust_remote_code=True
                 )

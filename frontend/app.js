@@ -28,7 +28,7 @@ const elements = {
     detectLocation: document.getElementById('detectLocation'),
     showAlertsBtn: document.getElementById('showAlertsBtn'),
     alertCount: document.getElementById('alertCount'),
-    
+
     // Views
     chatViewBtn: document.getElementById('chatViewBtn'),
     dashboardViewBtn: document.getElementById('dashboardViewBtn'),
@@ -36,14 +36,14 @@ const elements = {
     chatView: document.getElementById('chatView'),
     dashboardView: document.getElementById('dashboardView'),
     systemView: document.getElementById('systemView'),
-    
+
     // System Status
     refreshSystemStatus: document.getElementById('refreshSystemStatus'),
     webSearchInput: document.getElementById('webSearchInput'),
     searchType: document.getElementById('searchType'),
     webSearchBtn: document.getElementById('webSearchBtn'),
     searchResults: document.getElementById('searchResults'),
-    
+
     // Chat
     chatMessages: document.getElementById('chatMessages'),
     chatContainer: document.getElementById('chatContainer'),
@@ -51,7 +51,7 @@ const elements = {
     sendMessage: document.getElementById('sendMessage'),
     clearChat: document.getElementById('clearChat'),
     scrollBottomBtn: document.getElementById('scrollBottomBtn'),
-    
+
     // Dashboard
     chartPeriod: document.getElementById('chartPeriod'),
     predictedRecovery: document.getElementById('predictedRecovery'),
@@ -65,7 +65,7 @@ const elements = {
     riskLevel: document.getElementById('riskLevel'),
     riskFactors: document.getElementById('riskFactors'),
     insightsGrid: document.getElementById('insightsGrid'),
-    
+
     // Panels
     loadingOverlay: document.getElementById('loadingOverlay'),
     risksPanel: document.getElementById('risksPanel'),
@@ -124,15 +124,15 @@ function generateDailySummary(metrics) {
     const recovery = metrics.avg_recovery_score || 65;
     const sleep = metrics.avg_sleep_hours || 7;
     const strain = metrics.avg_strain || 10;
-    
+
     // Determine overall state
     let overallScore = 0;
     if (recovery >= 70) overallScore += 2;
     else if (recovery >= 50) overallScore += 1;
-    
+
     if (sleep >= 7) overallScore += 2;
     else if (sleep >= 6) overallScore += 1;
-    
+
     // Generate summary based on score
     if (overallScore >= 4) {
         return {
@@ -171,13 +171,13 @@ function generateDailySummary(metrics) {
 
 function updateDailySummary(metrics) {
     const summary = generateDailySummary(metrics);
-    
+
     const card = document.getElementById('dailySummaryCard');
     const emoji = document.getElementById('summaryEmoji');
     const headline = document.getElementById('summaryHeadline');
     const detail = document.getElementById('summaryDetail');
     const primaryBtn = document.getElementById('summaryPrimaryAction');
-    
+
     if (card) card.className = `daily-summary-card ${summary.class}`;
     if (emoji) emoji.textContent = summary.emoji;
     if (headline) headline.textContent = summary.headline;
@@ -188,7 +188,7 @@ function updateDailySummary(metrics) {
 function askPrimaryQuestion() {
     const summary = document.getElementById('summaryHeadline')?.textContent || '';
     let prompt = "Create a personalized plan for today based on my health metrics";
-    
+
     if (summary.includes('Rest')) {
         prompt = "I need to rest today. What should I eat and do to recover?";
     } else if (summary.includes('easy')) {
@@ -196,7 +196,7 @@ function askPrimaryQuestion() {
     } else if (summary.includes('fantastic')) {
         prompt = "I'm feeling great! Give me an ambitious workout and meal plan for today.";
     }
-    
+
     elements.chatInput.value = prompt;
     elements.chatInput.focus();
     sendChatMessage();
@@ -248,7 +248,7 @@ let currentOnboardingStep = 0;
 function showOnboarding() {
     const hasSeenOnboarding = localStorage.getItem('wellnessai-onboarding-complete');
     if (hasSeenOnboarding) return;
-    
+
     // Small delay to let the page load first
     setTimeout(() => {
         const overlay = document.getElementById('onboardingOverlay');
@@ -264,32 +264,32 @@ function showOnboardingStep(stepIndex) {
         completeOnboarding();
         return;
     }
-    
+
     currentOnboardingStep = stepIndex;
     const step = onboardingSteps[stepIndex];
     const targetElement = document.querySelector(step.target);
-    
+
     if (!targetElement) {
         showOnboardingStep(stepIndex + 1);
         return;
     }
-    
+
     // Remove previous highlights
     document.querySelectorAll('.onboarding-highlight').forEach(el => {
         el.classList.remove('onboarding-highlight');
     });
-    
+
     // Highlight current element
     targetElement.classList.add('onboarding-highlight');
-    
+
     // Update tooltip content
     document.getElementById('onboardingStepIndicator').textContent = `Step ${stepIndex + 1} of ${onboardingSteps.length}`;
     document.getElementById('onboardingTitle').textContent = step.title;
     document.getElementById('onboardingText').textContent = step.text;
-    
+
     const nextBtn = document.getElementById('onboardingNext');
     nextBtn.textContent = stepIndex === onboardingSteps.length - 1 ? "Get Started" : "Next";
-    
+
     // Position tooltip near the target
     positionOnboardingTooltip(targetElement, step.position);
 }
@@ -297,13 +297,13 @@ function showOnboardingStep(stepIndex) {
 function positionOnboardingTooltip(targetElement, position) {
     const tooltip = document.getElementById('onboardingTooltip');
     const rect = targetElement.getBoundingClientRect();
-    
+
     const tooltipWidth = 320;
     const tooltipHeight = tooltip.offsetHeight || 200;
     const margin = 20;
-    
+
     let top, left;
-    
+
     switch (position) {
         case 'right':
             top = rect.top + (rect.height / 2) - (tooltipHeight / 2);
@@ -323,11 +323,11 @@ function positionOnboardingTooltip(targetElement, position) {
             left = rect.left + (rect.width / 2) - (tooltipWidth / 2);
             break;
     }
-    
+
     // Keep tooltip within viewport
     top = Math.max(20, Math.min(top, window.innerHeight - tooltipHeight - 20));
     left = Math.max(20, Math.min(left, window.innerWidth - tooltipWidth - 20));
-    
+
     tooltip.style.top = `${top}px`;
     tooltip.style.left = `${left}px`;
 }
@@ -349,7 +349,7 @@ function completeOnboarding() {
 function setupOnboarding() {
     const nextBtn = document.getElementById('onboardingNext');
     const skipBtn = document.getElementById('onboardingSkip');
-    
+
     if (nextBtn) nextBtn.addEventListener('click', nextOnboardingStep);
     if (skipBtn) skipBtn.addEventListener('click', completeOnboarding);
 }
@@ -365,7 +365,7 @@ function setupFloatingButton() {
                 // Generate a contextual question based on current health data
                 const contextualQuestion = generateContextualQuestion();
                 switchView('chat');
-                
+
                 // Pre-fill the chat input with contextual question
                 if (contextualQuestion) {
                     elements.chatInput.value = contextualQuestion;
@@ -376,7 +376,7 @@ function setupFloatingButton() {
                 }
             }
         });
-        
+
         // Initially hide on chat view
         updateFloatingButtonVisibility();
     }
@@ -386,9 +386,9 @@ function generateContextualQuestion() {
     // Generate a relevant question based on current health metrics
     const recovery = elements.recoveryScore?.textContent;
     const sleep = elements.sleepHours?.textContent;
-    
+
     const questions = [];
-    
+
     if (recovery && parseFloat(recovery) < 60) {
         questions.push("My recovery is low today. What should I eat to help me recover?");
         questions.push("I'm not feeling my best. What activities would you recommend?");
@@ -396,17 +396,17 @@ function generateContextualQuestion() {
         questions.push("I'm feeling great today! What's a good challenging workout?");
         questions.push("My energy is high. What should I eat to maintain this?");
     }
-    
+
     if (sleep && parseFloat(sleep) < 6) {
         questions.push("I didn't sleep well. What foods help with energy?");
         questions.push("How can I improve my sleep quality tonight?");
     }
-    
+
     // Add some general questions as fallback
     questions.push("What should I eat today based on my health data?");
     questions.push("Give me a personalized meal plan for today");
     questions.push("What are my health insights for this week?");
-    
+
     // Return a random question from the relevant ones
     return questions[Math.floor(Math.random() * Math.min(questions.length, 3))];
 }
@@ -430,7 +430,7 @@ function checkForImprovements(newMetrics) {
         previousMetrics = { ...newMetrics };
         return;
     }
-    
+
     // Check recovery improvement
     if (newMetrics.avg_recovery_score && previousMetrics.avg_recovery_score) {
         const improvement = newMetrics.avg_recovery_score - previousMetrics.avg_recovery_score;
@@ -438,7 +438,7 @@ function checkForImprovements(newMetrics) {
             showCelebration('energy levels', Math.round(improvement));
         }
     }
-    
+
     // Check sleep improvement
     if (newMetrics.avg_sleep_hours && previousMetrics.avg_sleep_hours) {
         const improvement = newMetrics.avg_sleep_hours - previousMetrics.avg_sleep_hours;
@@ -446,12 +446,12 @@ function checkForImprovements(newMetrics) {
             showCelebration('sleep', `${improvement.toFixed(1)} hours`);
         }
     }
-    
+
     previousMetrics = { ...newMetrics };
 }
 
 function showCelebration(metric, improvement) {
-    const message = typeof improvement === 'number' 
+    const message = typeof improvement === 'number'
         ? `Great job! Your ${metric} improved by ${improvement}%`
         : `Great job! Your ${metric} improved by ${improvement}`;
     showNotification(message, 'celebration');
@@ -467,7 +467,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function init() {
     showLoadingState(true);
-    
+
     try {
         await Promise.all([
             loadUsers(),
@@ -480,7 +480,7 @@ async function init() {
     } finally {
         showLoadingState(false);
     }
-    
+
     setupEventListeners();
     setupScrollObserver();
     initializeCharts();
@@ -494,12 +494,12 @@ function setupEventListeners() {
     if (elements.systemViewBtn) {
         elements.systemViewBtn.addEventListener('click', () => switchView('system'));
     }
-    
+
     // System status refresh
     if (elements.refreshSystemStatus) {
         elements.refreshSystemStatus.addEventListener('click', loadSystemStatus);
     }
-    
+
     // Web search
     if (elements.webSearchBtn) {
         elements.webSearchBtn.addEventListener('click', performWebSearch);
@@ -553,7 +553,7 @@ function setupEventListeners() {
     elements.detectLocation.addEventListener('click', async () => {
         await detectUserLocation();
     });
-    
+
     elements.locationInput.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') loadWeather();
     });
@@ -576,12 +576,12 @@ function setupEventListeners() {
         elements.risksPanel.classList.add('open');
         elements.risksPanel.setAttribute('aria-hidden', 'false');
     });
-    
+
     elements.closeRisks.addEventListener('click', () => {
         elements.risksPanel.classList.remove('open');
         elements.risksPanel.setAttribute('aria-hidden', 'true');
     });
-    
+
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && elements.risksPanel.classList.contains('open')) {
             elements.risksPanel.classList.remove('open');
@@ -591,14 +591,14 @@ function setupEventListeners() {
 
     // Scroll to bottom button
     elements.scrollBottomBtn.addEventListener('click', scrollToBottom);
-    
+
     // Stat cards - click to ask about that metric
     document.querySelectorAll('.stat-card').forEach(card => {
         card.addEventListener('click', () => {
             const statType = card.dataset.type || card.classList[1];
             askAboutStat(statType);
         });
-        
+
         card.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
@@ -618,7 +618,7 @@ function switchView(view) {
     elements.chatViewBtn.classList.remove('active');
     elements.dashboardViewBtn.classList.remove('active');
     if (elements.systemViewBtn) elements.systemViewBtn.classList.remove('active');
-    
+
     elements.chatView.classList.remove('active');
     elements.chatView.style.display = 'none';
     elements.dashboardView.classList.remove('active');
@@ -627,7 +627,7 @@ function switchView(view) {
         elements.systemView.classList.remove('active');
         elements.systemView.style.display = 'none';
     }
-    
+
     if (view === 'chat') {
         elements.chatViewBtn.classList.add('active');
         elements.chatView.classList.add('active');
@@ -645,7 +645,7 @@ function switchView(view) {
             loadSystemStatus();
         }
     }
-    
+
     // Track current view and update floating button visibility
     currentView = view;
     updateFloatingButtonVisibility();
@@ -656,7 +656,7 @@ function setupScrollObserver() {
     elements.chatContainer.addEventListener('scroll', () => {
         const { scrollTop, scrollHeight, clientHeight } = elements.chatContainer;
         const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
-        
+
         if (isNearBottom) {
             elements.scrollBottomBtn.classList.remove('visible');
         } else {
@@ -670,14 +670,14 @@ async function loadSystemStatus() {
     try {
         const response = await fetch(`${API_BASE}/system-status`);
         const data = await response.json();
-        
+
         // Update LLM status
         const llmStatus = document.getElementById('llmStatus');
         if (llmStatus) {
             const statusEl = llmStatus.querySelector('.component-status');
             const modelEl = document.getElementById('llmModel');
             const deviceEl = document.getElementById('llmDevice');
-            
+
             if (data.components.local_llm.status === 'active') {
                 statusEl.textContent = '✓ Active';
                 statusEl.className = 'component-status active';
@@ -685,11 +685,11 @@ async function loadSystemStatus() {
                 statusEl.textContent = '✗ Disabled';
                 statusEl.className = 'component-status error';
             }
-            
+
             if (modelEl) modelEl.textContent = data.components.local_llm.model || 'Not loaded';
             if (deviceEl) deviceEl.textContent = data.components.local_llm.device || 'CPU';
         }
-        
+
         // Update Recommendation Engine status
         const recStatus = document.getElementById('recEngineStatus');
         if (recStatus) {
@@ -697,7 +697,7 @@ async function loadSystemStatus() {
             statusEl.textContent = '✓ Active';
             statusEl.className = 'component-status active';
         }
-        
+
         // Update ML status
         const mlStatus = document.getElementById('mlStatus');
         if (mlStatus) {
@@ -705,7 +705,7 @@ async function loadSystemStatus() {
             statusEl.textContent = '✓ Active';
             statusEl.className = 'component-status active';
         }
-        
+
         // Update Web Search status
         const webSearchStatus = document.getElementById('webSearchStatus');
         if (webSearchStatus) {
@@ -713,7 +713,7 @@ async function loadSystemStatus() {
             statusEl.textContent = '✓ Available';
             statusEl.className = 'component-status active';
         }
-        
+
     } catch (error) {
         console.error('Failed to load system status:', error);
     }
@@ -722,12 +722,12 @@ async function loadSystemStatus() {
 async function performWebSearch() {
     const query = elements.webSearchInput?.value?.trim();
     const searchType = elements.searchType?.value || 'general';
-    
+
     if (!query) {
         showNotification('Please enter a search query', 'error');
         return;
     }
-    
+
     // Show loading
     if (elements.searchResults) {
         elements.searchResults.innerHTML = '<p class="search-placeholder">🔍 Searching...</p>';
@@ -736,19 +736,19 @@ async function performWebSearch() {
         elements.webSearchBtn.disabled = true;
         elements.webSearchBtn.textContent = 'Searching...';
     }
-    
+
     try {
         const response = await fetch(`${API_BASE}/web-search`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ query, search_type: searchType })
         });
-        
+
         const data = await response.json();
-        
+
         if (data.success && data.results.length > 0) {
             let html = '';
-            
+
             if (data.summary) {
                 html += `<div class="search-result-item">
                     <div class="search-result-title">Summary</div>
@@ -756,7 +756,7 @@ async function performWebSearch() {
                     ${data.source ? `<div class="search-result-source">Source: ${data.source}</div>` : ''}
                 </div>`;
             }
-            
+
             data.results.forEach(result => {
                 html += `<div class="search-result-item">
                     <div class="search-result-title">${result.title || 'Result'}</div>
@@ -764,12 +764,12 @@ async function performWebSearch() {
                     ${result.url ? `<div class="search-result-source"><a href="${result.url}" target="_blank">🔗 ${result.source || 'View source'}</a></div>` : ''}
                 </div>`;
             });
-            
+
             elements.searchResults.innerHTML = html;
         } else {
             elements.searchResults.innerHTML = `<p class="search-placeholder">No results found for "${query}". Try a different search term.</p>`;
         }
-        
+
     } catch (error) {
         console.error('Web search error:', error);
         elements.searchResults.innerHTML = '<p class="search-placeholder">❌ Search failed. Please try again.</p>';
@@ -793,7 +793,7 @@ function askAboutStat(statType) {
         activity: "Based on my activity level, what should my nutrition strategy be today?",
         strain: "Based on my strain levels, what should my nutrition strategy be to support my activity and recovery?"
     };
-    
+
     const prompt = prompts[statType];
     if (prompt) {
         switchView('chat');
@@ -808,11 +808,11 @@ async function loadUsers() {
     try {
         const response = await fetch(`${API_BASE}/users?limit=50`);
         const data = await response.json();
-        
-        elements.userSelect.innerHTML = data.users.map(userId => 
+
+        elements.userSelect.innerHTML = data.users.map(userId =>
             `<option value="${userId}">${formatUserId(userId)}</option>`
         ).join('');
-        
+
         currentUserId = data.users[0] || 'USER_00001';
     } catch (error) {
         console.error('Failed to load users:', error);
@@ -830,7 +830,7 @@ async function loadUserData() {
     try {
         const response = await fetch(`${API_BASE}/users/${currentUserId}/health-context`);
         if (!response.ok) throw new Error('User not found');
-        
+
         const data = await response.json();
         updateHealthStats(data);
         updateHealthRisks(data.health_risks || []);
@@ -842,7 +842,7 @@ async function loadUserData() {
 
 async function loadWeather() {
     const location = elements.locationInput.value || 'New York';
-    
+
     try {
         const response = await fetch(`${API_BASE}/weather?location=${encodeURIComponent(location)}`);
         const data = await response.json();
@@ -870,18 +870,18 @@ async function detectUserLocation() {
                 const { latitude, longitude } = position.coords;
                 // WeatherAPI.com accepts lat,lon format
                 const locationQuery = `${latitude},${longitude}`;
-                
+
                 try {
                     const response = await fetch(`${API_BASE}/weather?location=${encodeURIComponent(locationQuery)}`);
                     const data = await response.json();
-                    
+
                     // Update the input with the detected city name
                     if (data.weather_summary?.location) {
                         elements.locationInput.value = data.weather_summary.location;
                     } else {
                         elements.locationInput.value = locationQuery;
                     }
-                    
+
                     updateWeatherDisplay(data);
                     elements.detectLocation.classList.remove('loading');
                     showNotification(`Location detected: ${elements.locationInput.value}`, 'success');
@@ -897,7 +897,7 @@ async function detectUserLocation() {
             (error) => {
                 console.warn('Geolocation error:', error.message);
                 elements.detectLocation.classList.remove('loading');
-                
+
                 let errorMessage = 'Could not detect location';
                 if (error.code === error.PERMISSION_DENIED) {
                     errorMessage = 'Location access denied. Using default.';
@@ -906,7 +906,7 @@ async function detectUserLocation() {
                 } else if (error.code === error.TIMEOUT) {
                     errorMessage = 'Location request timed out. Using default.';
                 }
-                
+
                 showNotification(errorMessage, 'warning');
                 elements.locationInput.value = 'New York';
                 loadWeather();
@@ -923,23 +923,71 @@ async function detectUserLocation() {
 
 async function loadDashboardData() {
     const days = parseInt(elements.chartPeriod.value) || 30;
-    
+
     try {
-        const response = await fetch(`${API_BASE}/users/${currentUserId}/dashboard?days=${days}`);
+        const response = await fetch(`${API_BASE}/users/${currentUserId}/dashboard?days=${days}&forecast_days=3`);
         const data = await response.json();
-        
+
         // Update Daily Summary Card first (most important)
         if (data.recent_metrics) {
             updateDailySummary(data.recent_metrics);
         }
-        
+
         updatePredictions(data.predictions);
-        updateCharts(data.trends);
+        updateCharts(data.trends, data.forecasts);
         updateInsights(data.correlations);
+
+        // Update forecast summary if available
+        if (data.forecasts && data.forecasts.length > 0) {
+            updateForecastSummary(data.forecasts);
+        }
     } catch (error) {
         console.error('Failed to load dashboard data:', error);
         showNotification('Failed to load dashboard data', 'error');
     }
+}
+
+// Update forecast summary cards
+function updateForecastSummary(forecasts) {
+    const container = document.getElementById('forecastCards');
+    if (!container || !forecasts || forecasts.length === 0) return;
+
+    const getRecoveryClass = (score) => {
+        if (score >= 70) return 'excellent';
+        if (score >= 50) return 'good';
+        if (score >= 30) return 'moderate';
+        return 'poor';
+    };
+
+    container.innerHTML = forecasts.slice(0, 3).map(day => {
+        const recoveryClass = getRecoveryClass(day.recovery_score);
+        const date = new Date(day.date);
+        const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+
+        return `
+            <div class="forecast-card ${recoveryClass}">
+                <div class="forecast-day">${dayName}</div>
+                <div class="forecast-date">${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
+                <div class="forecast-metrics">
+                    <div class="forecast-metric">
+                        <span class="metric-icon">💪</span>
+                        <span class="metric-value">${Math.round(day.recovery_score)}%</span>
+                        <span class="metric-label">Recovery</span>
+                    </div>
+                    <div class="forecast-metric">
+                        <span class="metric-icon">😴</span>
+                        <span class="metric-value">${day.sleep_hours.toFixed(1)}h</span>
+                        <span class="metric-label">Sleep</span>
+                    </div>
+                    <div class="forecast-metric">
+                        <span class="metric-icon">❤️</span>
+                        <span class="metric-value">${Math.round(day.hrv)}</span>
+                        <span class="metric-label">HRV</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
 }
 
 async function sendChatMessage() {
@@ -948,7 +996,7 @@ async function sendChatMessage() {
 
     isLoading = true;
     elements.sendMessage.disabled = true;
-    
+
     addMessage(message, 'user');
     elements.chatInput.value = '';
     elements.chatInput.style.height = 'auto';
@@ -969,7 +1017,7 @@ async function sendChatMessage() {
 
         const data = await response.json();
         removeTypingIndicator(typingId);
-        
+
         setTimeout(() => {
             const msgEl = addMessage(data.response, 'assistant');
             if (data.ui_components && data.ui_components.length && msgEl) {
@@ -980,7 +1028,7 @@ async function sendChatMessage() {
             }
             if (data.health_summary) updateQuickStats(data.health_summary);
         }, 200);
-        
+
     } catch (error) {
         console.error('Chat error:', error);
         removeTypingIndicator(typingId);
@@ -994,10 +1042,10 @@ async function sendChatMessage() {
 
 async function clearConversation() {
     if (!confirm('Are you sure you want to clear the chat history?')) return;
-    
+
     try {
         await fetch(`${API_BASE}/chat/clear?user_id=${currentUserId}`, { method: 'POST' });
-        
+
         const messages = elements.chatMessages.querySelectorAll('.message');
         messages.forEach((msg, index) => {
             if (index > 0) {
@@ -1005,7 +1053,7 @@ async function clearConversation() {
                 setTimeout(() => msg.remove(), 300);
             }
         });
-        
+
         showNotification('Conversation cleared', 'success');
     } catch (error) {
         console.error('Failed to clear conversation:', error);
@@ -1016,16 +1064,16 @@ async function clearConversation() {
 // UI Update Functions
 function updateHealthStats(data) {
     const metrics = data.recent_metrics || {};
-    
+
     // Energy (Recovery)
     if (metrics.avg_recovery_score !== undefined) {
         const recovery = Math.round(metrics.avg_recovery_score);
         elements.recoveryScore.textContent = recovery;
-        
+
         const card = document.querySelector('[data-type="recovery"]');
         const statusEl = document.getElementById('recoveryStatus');
         const emojiEl = document.getElementById('recoveryEmoji');
-        
+
         let status, emoji, level;
         if (recovery >= 80) {
             status = "Feeling great today";
@@ -1044,21 +1092,21 @@ function updateHealthStats(data) {
             emoji = "🪫";
             level = "alert";
         }
-        
+
         if (statusEl) statusEl.textContent = status;
         if (emojiEl) emojiEl.textContent = emoji;
         if (card) card.setAttribute('data-status', level);
     }
-    
+
     // Sleep
     if (metrics.avg_sleep_hours !== undefined) {
         const sleep = metrics.avg_sleep_hours;
         elements.sleepHours.textContent = sleep.toFixed(1);
-        
+
         const card = document.querySelector('[data-type="sleep"]');
         const statusEl = document.getElementById('sleepStatus');
         const emojiEl = document.getElementById('sleepEmoji');
-        
+
         let status, emoji, level;
         if (sleep >= 8) {
             status = "Well rested";
@@ -1077,21 +1125,21 @@ function updateHealthStats(data) {
             emoji = "😵";
             level = "alert";
         }
-        
+
         if (statusEl) statusEl.textContent = status;
         if (emojiEl) emojiEl.textContent = emoji;
         if (card) card.setAttribute('data-status', level);
     }
-    
+
     // Stress (HRV)
     if (metrics.avg_hrv !== undefined) {
         const hrv = Math.round(metrics.avg_hrv);
         elements.hrvValue.textContent = hrv;
-        
+
         const card = document.querySelector('[data-type="stress"]');
         const statusEl = document.getElementById('stressStatus');
         const emojiEl = document.getElementById('stressEmoji');
-        
+
         let status, emoji, level;
         if (hrv >= 60) {
             status = "Very relaxed";
@@ -1110,21 +1158,21 @@ function updateHealthStats(data) {
             emoji = "😰";
             level = "alert";
         }
-        
+
         if (statusEl) statusEl.textContent = status;
         if (emojiEl) emojiEl.textContent = emoji;
         if (card) card.setAttribute('data-status', level);
     }
-    
+
     // Activity (Strain)
     if (metrics.avg_strain !== undefined) {
         const strain = metrics.avg_strain;
         elements.strainValue.textContent = strain.toFixed(1);
-        
+
         const card = document.querySelector('[data-type="activity"]');
         const statusEl = document.getElementById('activityStatus');
         const emojiEl = document.getElementById('activityEmoji');
-        
+
         let status, emoji, level;
         if (strain >= 15) {
             status = "Very active";
@@ -1143,7 +1191,7 @@ function updateHealthStats(data) {
             emoji = "🧘";
             level = "good";
         }
-        
+
         if (statusEl) statusEl.textContent = status;
         if (emojiEl) emojiEl.textContent = emoji;
         if (card) card.setAttribute('data-status', level);
@@ -1155,7 +1203,7 @@ function updateTrend(element, trend, isCritical = false) {
     const friendlyTrend = getTrendText(trend);
     element.textContent = friendlyTrend;
     element.className = 'stat-trend';
-    
+
     if (isCritical && trend === 'declining') {
         element.classList.add('critical');
     } else if (trend) {
@@ -1173,17 +1221,17 @@ function updateQuickStats(summary) {
 
 function updateWeatherDisplay(data) {
     const weather = data.weather_summary || data;
-    
+
     if (weather.temperature !== undefined) {
         elements.weatherTemp.textContent = `${Math.round(weather.temperature)}°C`;
     }
-    
+
     if (weather.condition) {
         elements.weatherCondition.textContent = weather.condition;
     }
-    
+
     const impacts = data.health_impacts || [];
-    elements.weatherImpacts.innerHTML = impacts.map(impact => 
+    elements.weatherImpacts.innerHTML = impacts.map(impact =>
         `<span class="weather-impact-tag" role="listitem">${getImpactIcon(impact)} ${formatImpact(impact)}</span>`
     ).join('');
 }
@@ -1204,7 +1252,7 @@ function formatImpact(impact) {
 function updateHealthRisks(risks) {
     healthRisks = risks;
     elements.alertCount.textContent = risks.length;
-    
+
     if (risks.length === 0) {
         elements.showAlertsBtn.style.display = 'none';
         elements.risksContent.innerHTML = `
@@ -1232,38 +1280,38 @@ function updateHealthRisks(risks) {
 // ============ Dashboard Functions ============
 function updatePredictions(predictions) {
     if (!predictions) return;
-    
+
     // Tomorrow's Outlook (Recovery) - Friendly Version
     const recovery = predictions.recovery || {};
     const predictedScore = recovery.predicted_recovery || 65;
-    
+
     // Update hidden technical values
     if (elements.predictedRecovery) elements.predictedRecovery.textContent = predictedScore;
-    
+
     // Update friendly summary
     const tomorrowSummary = document.getElementById('tomorrowSummary');
     const outlookEmoji = document.getElementById('outlookEmoji');
     const outlookText = document.getElementById('outlookText');
     const recoveryReasoning = document.getElementById('recoveryReasoning');
-    
+
     const outlook = getTomorrowOutlook(predictedScore);
     if (tomorrowSummary) tomorrowSummary.textContent = outlook.summary;
     if (outlookEmoji) outlookEmoji.textContent = outlook.emoji;
     if (outlookText) outlookText.textContent = outlook.feeling;
     if (recoveryReasoning) recoveryReasoning.textContent = outlook.reasoning;
     if (elements.recoveryRecommendation) elements.recoveryRecommendation.textContent = recovery.recommendation || outlook.tip;
-    
+
     // Activity Suggestion (Strain) - Friendly Version
     const strain = predictions.strain || {};
     const optimalStrain = strain.optimal_strain || 10;
-    
+
     if (elements.predictedStrain) elements.predictedStrain.textContent = optimalStrain;
-    
+
     const activitySummary = document.getElementById('activitySummary');
     const activity = getActivitySuggestion(optimalStrain, strain.current_recovery || 70);
     if (activitySummary) activitySummary.textContent = activity.summary;
     if (elements.strainRecommendation) elements.strainRecommendation.textContent = strain.activity_recommendation || activity.tip;
-    
+
     // Workout suggestions - More friendly format
     const suggestions = strain.workout_suggestions || [];
     if (elements.workoutSuggestions) {
@@ -1278,22 +1326,22 @@ function updatePredictions(predictions) {
             </div>
         `).join('');
     }
-    
+
     // Health Check (Risk) - Friendly Version
     const risk = predictions.risk || {};
     const riskScore = Math.round(risk.risk_score || 0);
     const riskLevel = risk.risk_level || 'low';
-    
+
     if (elements.riskScore) elements.riskScore.textContent = riskScore;
-    
+
     const healthEmoji = document.getElementById('healthEmoji');
     const healthText = document.getElementById('healthText');
     const healthTips = document.getElementById('healthTips');
-    
+
     const healthCheck = getHealthCheckMessage(riskScore, riskLevel, risk.risk_factors || []);
     if (healthEmoji) healthEmoji.textContent = healthCheck.emoji;
     if (healthText) healthText.textContent = healthCheck.message;
-    
+
     if (healthTips) {
         healthTips.innerHTML = healthCheck.tips.map(tip => `
             <div class="health-tip">
@@ -1302,7 +1350,7 @@ function updatePredictions(predictions) {
             </div>
         `).join('');
     }
-    
+
     // Technical factors (hidden by default)
     const factors = risk.risk_factors || [];
     if (elements.riskFactors) {
@@ -1433,7 +1481,7 @@ function updateChartSummaries(trends) {
         `;
         recoverySummary.className = `chart-summary ${trend.class}`;
     }
-    
+
     // Sleep trend
     const sleepSummary = document.getElementById('sleepSummary');
     if (sleepSummary && trends.sleep_hours?.length > 1) {
@@ -1445,7 +1493,7 @@ function updateChartSummaries(trends) {
         `;
         sleepSummary.className = `chart-summary ${trend.class}`;
     }
-    
+
     // HRV/Stress trend
     const hrvSummary = document.getElementById('hrvSummary');
     if (hrvSummary && trends.hrv?.length > 1) {
@@ -1457,7 +1505,7 @@ function updateChartSummaries(trends) {
         `;
         hrvSummary.className = `chart-summary ${trend.direction >= 0 ? 'improving' : 'declining'}`;
     }
-    
+
     // Calories trend
     const caloriesSummary = document.getElementById('caloriesSummary');
     if (caloriesSummary && trends.calories?.length > 1) {
@@ -1472,38 +1520,38 @@ function updateChartSummaries(trends) {
 
 function calculateTrendDirection(data) {
     if (data.length < 2) return { direction: 0, text: 'stable', emoji: '📊', class: '', message: '', sleepMessage: '' };
-    
+
     const firstHalf = data.slice(0, Math.floor(data.length / 2));
     const secondHalf = data.slice(Math.floor(data.length / 2));
-    
+
     const firstAvg = firstHalf.reduce((a, b) => a + b, 0) / firstHalf.length;
     const secondAvg = secondHalf.reduce((a, b) => a + b, 0) / secondHalf.length;
-    
+
     const change = ((secondAvg - firstAvg) / firstAvg) * 100;
-    
+
     if (change > 5) {
-        return { 
-            direction: 1, 
-            text: 'improving', 
-            emoji: '📈', 
+        return {
+            direction: 1,
+            text: 'improving',
+            emoji: '📈',
             class: 'improving',
             message: 'Keep up the good work!',
             sleepMessage: "that's getting better!"
         };
     } else if (change < -5) {
-        return { 
-            direction: -1, 
-            text: 'declining', 
-            emoji: '📉', 
+        return {
+            direction: -1,
+            text: 'declining',
+            emoji: '📉',
             class: 'declining',
             message: 'Let\'s work on getting this back up.',
             sleepMessage: 'try to get more rest.'
         };
     } else {
-        return { 
-            direction: 0, 
-            text: 'staying steady', 
-            emoji: '📊', 
+        return {
+            direction: 0,
+            text: 'staying steady',
+            emoji: '📊',
             class: '',
             message: 'Consistent is good!',
             sleepMessage: 'staying consistent.'
@@ -1513,7 +1561,7 @@ function calculateTrendDirection(data) {
 
 function updateInsights(correlations) {
     const insights = correlations?.insights || [];
-    
+
     if (insights.length === 0) {
         elements.insightsGrid.innerHTML = `
             <div class="insight-card">
@@ -1523,7 +1571,7 @@ function updateInsights(correlations) {
         `;
         return;
     }
-    
+
     elements.insightsGrid.innerHTML = insights.map(insight => `
         <div class="insight-card">
             <div class="insight-title">
@@ -1722,25 +1770,84 @@ function initializeCharts() {
     }
 }
 
-function updateCharts(trends) {
+function updateCharts(trends, forecasts = []) {
     if (!trends || !trends.dates || trends.dates.length === 0) return;
-    
+
     // Update chart summaries with trend analysis
     updateChartSummaries(trends);
-    
+
     const labels = trends.dates.map(d => {
         const date = new Date(d);
         return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     });
-    
-    // Update Recovery Chart
+
+    // Add forecast labels if available
+    const forecastLabels = forecasts.map(f => {
+        const date = new Date(f.date);
+        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    });
+
+    const allLabels = [...labels, ...forecastLabels];
+
+    // Update Recovery Chart with forecasts
     if (charts.recovery) {
-        charts.recovery.data.labels = labels;
-        charts.recovery.data.datasets[0].data = trends.recovery;
-        charts.recovery.data.datasets[1].data = trends.strain;
+        charts.recovery.data.labels = allLabels;
+
+        // Historical data + null padding for forecast area
+        const historicalRecovery = [...trends.recovery, ...forecasts.map(() => null)];
+        const historicalStrain = [...trends.strain, ...forecasts.map(() => null)];
+
+        // Forecast data: null padding for historical + actual forecast
+        const forecastRecovery = [...trends.recovery.map(() => null)];
+        const forecastStrain = [...trends.strain.map(() => null)];
+
+        // Connect forecast to last historical point
+        if (forecasts.length > 0 && trends.recovery.length > 0) {
+            forecastRecovery[forecastRecovery.length - 1] = trends.recovery[trends.recovery.length - 1];
+            forecastStrain[forecastStrain.length - 1] = trends.strain[trends.strain.length - 1];
+            forecasts.forEach(f => {
+                forecastRecovery.push(f.recovery_score);
+                forecastStrain.push(f.day_strain);
+            });
+        }
+
+        charts.recovery.data.datasets[0].data = historicalRecovery;
+        charts.recovery.data.datasets[1].data = historicalStrain;
+
+        // Add forecast datasets if not already present
+        if (forecasts.length > 0 && charts.recovery.data.datasets.length === 2) {
+            charts.recovery.data.datasets.push({
+                label: 'Recovery Forecast',
+                data: forecastRecovery,
+                borderColor: 'rgba(74, 222, 128, 0.6)',
+                backgroundColor: 'transparent',
+                borderDash: [5, 5],
+                borderWidth: 2,
+                pointRadius: 4,
+                pointBackgroundColor: 'rgba(74, 222, 128, 0.8)',
+                tension: 0.3,
+                yAxisID: 'y'
+            });
+            charts.recovery.data.datasets.push({
+                label: 'Strain Forecast',
+                data: forecastStrain,
+                borderColor: 'rgba(251, 191, 36, 0.6)',
+                backgroundColor: 'transparent',
+                borderDash: [5, 5],
+                borderWidth: 2,
+                pointRadius: 4,
+                pointBackgroundColor: 'rgba(251, 191, 36, 0.8)',
+                tension: 0.3,
+                yAxisID: 'y1'
+            });
+        } else if (forecasts.length > 0) {
+            charts.recovery.data.datasets[2].data = forecastRecovery;
+            charts.recovery.data.datasets[3].data = forecastStrain;
+        }
+
         charts.recovery.update('none');
     }
-    
+
     // Update Sleep Chart
     if (charts.sleep) {
         // Calculate light sleep
@@ -1749,26 +1856,87 @@ function updateCharts(trends) {
             const rem = trends.rem_sleep[i] || 0;
             return Math.max(0, total - deep - rem);
         });
-        
-        charts.sleep.data.labels = labels;
-        charts.sleep.data.datasets[0].data = trends.deep_sleep;
-        charts.sleep.data.datasets[1].data = trends.rem_sleep;
-        charts.sleep.data.datasets[2].data = lightSleep;
+
+        charts.sleep.data.labels = allLabels;
+
+        // Pad historical data
+        const deepSleep = [...trends.deep_sleep, ...forecasts.map(() => null)];
+        const remSleep = [...trends.rem_sleep, ...forecasts.map(() => null)];
+        const lightSleepPadded = [...lightSleep, ...forecasts.map(() => null)];
+
+        charts.sleep.data.datasets[0].data = deepSleep;
+        charts.sleep.data.datasets[1].data = remSleep;
+        charts.sleep.data.datasets[2].data = lightSleepPadded;
+
+        // Add sleep forecast line
+        if (forecasts.length > 0 && charts.sleep.data.datasets.length === 3) {
+            const sleepForecast = [...trends.sleep_hours.map(() => null)];
+            sleepForecast[sleepForecast.length - 1] = trends.sleep_hours[trends.sleep_hours.length - 1];
+            forecasts.forEach(f => sleepForecast.push(f.sleep_hours));
+
+            charts.sleep.data.datasets.push({
+                label: 'Sleep Forecast',
+                data: sleepForecast,
+                borderColor: 'rgba(139, 92, 246, 0.7)',
+                backgroundColor: 'transparent',
+                borderDash: [5, 5],
+                borderWidth: 2,
+                pointRadius: 4,
+                type: 'line',
+                stack: false
+            });
+        } else if (forecasts.length > 0 && charts.sleep.data.datasets.length > 3) {
+            const sleepForecast = [...trends.sleep_hours.map(() => null)];
+            sleepForecast[sleepForecast.length - 1] = trends.sleep_hours[trends.sleep_hours.length - 1];
+            forecasts.forEach(f => sleepForecast.push(f.sleep_hours));
+            charts.sleep.data.datasets[3].data = sleepForecast;
+        }
+
         charts.sleep.update('none');
     }
-    
-    // Update HRV Chart
+
+    // Update HRV Chart with forecasts
     if (charts.hrv) {
-        charts.hrv.data.labels = labels;
-        charts.hrv.data.datasets[0].data = trends.hrv;
-        charts.hrv.data.datasets[1].data = trends.resting_hr;
+        charts.hrv.data.labels = allLabels;
+
+        const hrvData = [...trends.hrv, ...forecasts.map(() => null)];
+        const hrData = [...trends.resting_hr, ...forecasts.map(() => null)];
+
+        charts.hrv.data.datasets[0].data = hrvData;
+        charts.hrv.data.datasets[1].data = hrData;
+
+        // Add HRV forecast
+        if (forecasts.length > 0 && charts.hrv.data.datasets.length === 2) {
+            const hrvForecast = [...trends.hrv.map(() => null)];
+            hrvForecast[hrvForecast.length - 1] = trends.hrv[trends.hrv.length - 1];
+            forecasts.forEach(f => hrvForecast.push(f.hrv));
+
+            charts.hrv.data.datasets.push({
+                label: 'HRV Forecast',
+                data: hrvForecast,
+                borderColor: 'rgba(236, 72, 153, 0.6)',
+                backgroundColor: 'transparent',
+                borderDash: [5, 5],
+                borderWidth: 2,
+                pointRadius: 4,
+                tension: 0.3,
+                yAxisID: 'y'
+            });
+        } else if (forecasts.length > 0) {
+            const hrvForecast = [...trends.hrv.map(() => null)];
+            hrvForecast[hrvForecast.length - 1] = trends.hrv[trends.hrv.length - 1];
+            forecasts.forEach(f => hrvForecast.push(f.hrv));
+            charts.hrv.data.datasets[2].data = hrvForecast;
+        }
+
         charts.hrv.update('none');
     }
-    
+
     // Update Calories Chart
     if (charts.calories) {
-        charts.calories.data.labels = labels;
-        charts.calories.data.datasets[0].data = trends.calories;
+        charts.calories.data.labels = allLabels;
+        const caloriesData = [...trends.calories, ...forecasts.map(() => null)];
+        charts.calories.data.datasets[0].data = caloriesData;
         charts.calories.update('none');
     }
 }
@@ -1958,16 +2126,16 @@ async function handleComponentSkip(componentId, container) {
 function addMessage(content, type) {
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${type}`;
-    
+
     const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const name = type === 'user' ? 'You' : 'WellnessAI';
-    
+
     const avatarContent = type === 'assistant' ? `
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
         </svg>
     ` : '👤';
-    
+
     messageDiv.innerHTML = `
         <div class="message-avatar" aria-hidden="true">${avatarContent}</div>
         <div class="message-content">
@@ -1978,7 +2146,7 @@ function addMessage(content, type) {
             <div class="message-text">${formatMessage(content)}</div>
         </div>
     `;
-    
+
     elements.chatMessages.appendChild(messageDiv);
     scrollToBottom();
     return messageDiv;
@@ -2008,20 +2176,20 @@ function formatMessage(content) {
         .replace(/^---$/gm, '<hr>')
         .replace(/\n\n/g, '</p><p>')
         .replace(/\n/g, '<br>');
-    
+
     formatted = formatted.replace(/(<br>)?- (.*?)(<br>|$)/g, '<li>$2</li>');
     formatted = formatted.replace(/(<li>.*?<\/li>)+/g, '<ul>$&</ul>');
     formatted = formatted.replace(/<\/ul><br><ul>/g, '');
     formatted = formatted.replace(/<br><ul>/g, '<ul>');
     formatted = formatted.replace(/<\/ul><br>/g, '</ul>');
-    
+
     if (!formatted.startsWith('<') || formatted.startsWith('<strong>') || formatted.startsWith('<em>')) {
         formatted = `<p>${formatted}</p>`;
     }
-    
+
     formatted = formatted.replace(/<p><\/p>/g, '');
     formatted = formatted.replace(/<p><br><\/p>/g, '');
-    
+
     return formatted;
 }
 
@@ -2030,7 +2198,7 @@ function addTypingIndicator() {
     const messageDiv = document.createElement('div');
     messageDiv.className = 'message assistant';
     messageDiv.id = id;
-    
+
     messageDiv.innerHTML = `
         <div class="message-avatar" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -2049,7 +2217,7 @@ function addTypingIndicator() {
             </div>
         </div>
     `;
-    
+
     elements.chatMessages.appendChild(messageDiv);
     scrollToBottom();
     return id;
@@ -2087,12 +2255,12 @@ function showNotification(message, type = 'info') {
     `;
     toast.textContent = message;
     document.body.appendChild(toast);
-    
+
     requestAnimationFrame(() => {
         toast.style.opacity = '1';
         toast.style.transform = 'translateX(-50%) translateY(0)';
     });
-    
+
     setTimeout(() => {
         toast.style.opacity = '0';
         toast.style.transform = 'translateX(-50%) translateY(20px)';

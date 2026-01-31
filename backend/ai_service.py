@@ -135,8 +135,19 @@ Be concise, supportive, and actionable. Use the pre-computed recommendations as 
             weather_data=weather_data,
         )
 
-        # Step 3: Format context and inject preferences
-        health_context_text = self.recommendation_engine.format_health_context_for_llm(health_context)
+        # Step 3: Get LSTM forecasts for context
+        forecasts = []
+        try:
+            from .lstm_service import get_lstm_service
+            lstm_service = get_lstm_service()
+            forecast_response = lstm_service.predict_forecast(user_id)
+            if forecast_response.get('status') == 'success':
+                forecasts = forecast_response.get('predictions', [])[:3]
+        except Exception as e:
+            print(f"[AIService] LSTM forecast unavailable: {e}")
+
+        # Step 4: Format context with forecasts and inject preferences
+        health_context_text = self.recommendation_engine.format_health_context_for_llm(health_context, forecasts)
         recommendations_text = self.recommendation_engine.format_recommendations_for_llm(recommendations)
 
         try:

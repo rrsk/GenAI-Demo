@@ -66,3 +66,13 @@ PORT = int(os.getenv("PORT", 8000))
 DEFAULT_AI_PROVIDER = "local"  # "local", "openai", or "anthropic"
 OPENAI_MODEL = "gpt-4-turbo-preview"
 ANTHROPIC_MODEL = "claude-3-opus-20240229"
+
+# ============================================
+# LSTM Health Forecasting Settings
+# ============================================
+LSTM_MODEL_PATH = MODELS_DIR / "lstm_health.pt"
+LSTM_SCALERS_PATH = MODELS_DIR / "lstm_scalers.joblib"
+LSTM_SEQUENCE_LENGTH = 21  # Days of history required
+LSTM_FORECAST_HORIZON = 7  # Days to forecast
+LSTM_INPUT_FEATURES = 8  # Number of input features
+USE_LSTM = os.getenv("USE_LSTM", "true").lower() == "true"
