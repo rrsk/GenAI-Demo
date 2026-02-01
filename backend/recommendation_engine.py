@@ -551,7 +551,28 @@ class HealthRecommendationEngine:
         if risks := health_context.get("health_risks"):
             risk_text = "\n".join([f"- {r.get('risk', 'Unknown')}: {r.get('dietary_impact', '')}" for r in risks[:3]])
             parts.append(f"**Health Concerns:**\n{risk_text}")
-        
+
+        # LSTM 7-day forecast (holistic picture for recommendations)
+        if forecast := health_context.get("lstm_forecast"):
+            dates = forecast.get("dates", [])
+            recovery = forecast.get("recovery", [])
+            sleep = forecast.get("sleep_hours", [])
+            hrv = forecast.get("hrv", [])
+            strain = forecast.get("strain", [])
+            if dates and recovery:
+                rec_avg = sum(recovery) / len(recovery) if recovery else 0
+                sleep_avg = sum(sleep) / len(sleep) if sleep else 0
+                hrv_avg = sum(hrv) / len(hrv) if hrv else 0
+                strain_avg = sum(strain) / len(strain) if strain else 0
+                parts.append(
+                    f"""**LSTM 7-Day Forecast (next week):**
+- Predicted avg recovery: {rec_avg:.0f}%
+- Predicted avg sleep: {sleep_avg:.1f} hrs
+- Predicted avg HRV: {hrv_avg:.0f} ms
+- Predicted avg strain: {strain_avg:.1f}
+Use this forecast to give a holistic picture and proactive advice."""
+                )
+
         return "\n\n".join(parts)
     
     def generate_proactive_recommendations(self, forecasts: List[Dict]) -> List[Recommendation]:

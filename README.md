@@ -105,7 +105,11 @@ This project showcases several important GenAI/ML concepts for MTech coursework:
 6. **Run the application:**
    ```bash
    python run.py
+   # Or use the local-LLM script (ensures TinyLlama/BioGPT are enabled):
+   # ./scripts/run_with_local_llm.sh          # TinyLlama (default)
+   # WELLNESS_LLM_MODEL=biogpt ./scripts/run_with_local_llm.sh   # BioGPT
    ```
+   **Full setup for TinyLlama & BioGPT** (hardware, cloud options, Docker): see **[LOCAL_LLM_SETUP.md](LOCAL_LLM_SETUP.md)**.
 
 7. **Open in browser:**
    Navigate to [http://localhost:8000](http://localhost:8000)

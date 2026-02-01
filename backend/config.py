@@ -51,6 +51,13 @@ USE_LOCAL_LLM = os.getenv("USE_LOCAL_LLM", "true").lower() == "true"
 # Preload model on startup (slower start, faster first response)
 PRELOAD_LLM = os.getenv("PRELOAD_LLM", "false").lower() == "true"
 
+# State-of-union: BioGPT grounds context from user stats, TinyLlama gives the suggestion
+# When True: (1) BioGPT produces evidence-based prompt from health context + query
+#            (2) TinyLlama takes that prompt + query and returns user-facing response
+USE_STATE_OF_UNION = os.getenv("USE_STATE_OF_UNION", "true").lower() == "true"
+# Model used for grounding (evidence/research framing). Should be medical: biogpt, biogpt-medtext, biomedlm
+WELLNESS_GROUNDING_MODEL = os.getenv("WELLNESS_GROUNDING_MODEL", "biogpt")
+
 # ============================================
 # External API Keys (Optional Fallback)
 # ============================================

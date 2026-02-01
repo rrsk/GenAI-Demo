@@ -13,7 +13,12 @@ import warnings
 
 from .config import WHOOP_DATA_PATH
 
-warnings.filterwarnings('ignore')
+warnings.filterwarnings("ignore")
+
+try:
+    from .lstm_service import get_lstm_service
+except ImportError:
+    get_lstm_service = None
 
 
 class HealthMLService:
@@ -484,49 +489,55 @@ class HealthMLService:
         return "stable"
     
     def get_trend_data(self, user_id: str, days: int = 30) -> Dict:
-        """Get historical trend data for charts"""
+        """Get historical trend data for charts and LSTM forecast for next 7 days"""
         if self.df is None:
             return self._empty_trend_data()
-        
-        user_data = self.df[self.df['user_id'] == user_id].tail(days)
+
+        user_data = self.df[self.df["user_id"] == user_id].tail(days)
         if len(user_data) < 3:
             return self._empty_trend_data()
-        
-        return {
-            "dates": user_data['date'].dt.strftime('%Y-%m-%d').tolist(),
-            "recovery": user_data['recovery_score'].round(1).tolist(),
-            "sleep_hours": user_data['sleep_hours'].round(2).tolist(),
-            "sleep_efficiency": user_data['sleep_efficiency'].round(1).tolist(),
-            "hrv": user_data['hrv'].round(1).tolist(),
-            "resting_hr": user_data['resting_heart_rate'].round(1).tolist(),
-            "strain": user_data['day_strain'].round(2).tolist(),
-            "calories": user_data['calories_burned'].round(0).tolist(),
-            "deep_sleep": user_data['deep_sleep_hours'].round(2).tolist(),
-            "rem_sleep": user_data['rem_sleep_hours'].round(2).tolist(),
-            "skin_temp": user_data['skin_temp_deviation'].round(2).tolist(),
+
+        out = {
+            "dates": user_data["date"].dt.strftime("%Y-%m-%d").tolist(),
+            "recovery": user_data["recovery_score"].round(1).tolist(),
+            "sleep_hours": user_data["sleep_hours"].round(2).tolist(),
+            "sleep_efficiency": user_data["sleep_efficiency"].round(1).tolist(),
+            "hrv": user_data["hrv"].round(1).tolist(),
+            "resting_hr": user_data["resting_heart_rate"].round(1).tolist(),
+            "strain": user_data["day_strain"].round(2).tolist(),
+            "calories": user_data["calories_burned"].round(0).tolist(),
+            "deep_sleep": user_data["deep_sleep_hours"].round(2).tolist(),
+            "rem_sleep": user_data["rem_sleep_hours"].round(2).tolist(),
+            "skin_temp": user_data["skin_temp_deviation"].round(2).tolist(),
             "statistics": {
                 "recovery": {
-                    "mean": round(user_data['recovery_score'].mean(), 1),
-                    "min": round(user_data['recovery_score'].min(), 1),
-                    "max": round(user_data['recovery_score'].max(), 1),
-                    "std": round(user_data['recovery_score'].std(), 1)
+                    "mean": round(user_data["recovery_score"].mean(), 1),
+                    "min": round(user_data["recovery_score"].min(), 1),
+                    "max": round(user_data["recovery_score"].max(), 1),
+                    "std": round(user_data["recovery_score"].std(), 1),
                 },
                 "sleep": {
-                    "mean": round(user_data['sleep_hours'].mean(), 2),
-                    "min": round(user_data['sleep_hours'].min(), 2),
-                    "max": round(user_data['sleep_hours'].max(), 2)
+                    "mean": round(user_data["sleep_hours"].mean(), 2),
+                    "min": round(user_data["sleep_hours"].min(), 2),
+                    "max": round(user_data["sleep_hours"].max(), 2),
                 },
                 "hrv": {
-                    "mean": round(user_data['hrv'].mean(), 1),
-                    "min": round(user_data['hrv'].min(), 1),
-                    "max": round(user_data['hrv'].max(), 1)
+                    "mean": round(user_data["hrv"].mean(), 1),
+                    "min": round(user_data["hrv"].min(), 1),
+                    "max": round(user_data["hrv"].max(), 1),
                 },
                 "strain": {
-                    "mean": round(user_data['day_strain'].mean(), 2),
-                    "total": round(user_data['day_strain'].sum(), 1)
-                }
-            }
+                    "mean": round(user_data["day_strain"].mean(), 2),
+                    "total": round(user_data["day_strain"].sum(), 1),
+                },
+            },
         }
+        if get_lstm_service:
+            lstm = get_lstm_service()
+            forecast = lstm.get_forecast(user_id, self.df)
+            if forecast:
+                out["lstm_forecast"] = forecast
+        return out
     
     def _empty_trend_data(self) -> Dict:
         """Return empty trend data structure"""
@@ -542,7 +553,8 @@ class HealthMLService:
             "deep_sleep": [],
             "rem_sleep": [],
             "skin_temp": [],
-            "statistics": {}
+            "statistics": {},
+            "lstm_forecast": None,
         }
     
     def get_correlation_insights(self, user_id: str) -> Dict:

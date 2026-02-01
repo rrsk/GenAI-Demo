@@ -107,6 +107,8 @@ MODEL_CONFIGS = {
 # Default model - TinyLlama for best conversational experience
 # Use biogpt for medical terminology understanding
 DEFAULT_MODEL = os.environ.get("WELLNESS_LLM_MODEL", "tinyllama")
+# Grounding model for state-of-union: produces evidence-based prompt from user stats (BioGPT)
+GROUNDING_MODEL = os.environ.get("WELLNESS_GROUNDING_MODEL", "biogpt")
 
 
 class LocalLLMService:
@@ -401,6 +403,53 @@ Personalized Response:
         
         return response.strip()
     
+    def _build_grounding_prompt(self, health_context: str, user_message: str) -> str:
+        """Build prompt for grounding model (BioGPT): evidence-based summary from stats + query."""
+        template = self.model_config.get("template", "biogpt")
+        if template == "biogpt":
+            return f"""Based on the following patient biometrics and their question, provide a brief evidence-based clinical summary (2-4 sentences). Summarize the patient's status and what the evidence suggests—do not give direct advice to the patient. A health advisor will use this summary to give a personalized response.
+
+Patient data:
+{health_context[:2500]}
+
+Patient question: {user_message}
+
+Evidence-based summary:"""
+        # Generic medical-style prompt for biomedlm etc.
+        return f"""Clinical summary task. Given the patient data and question below, output a short evidence-based summary (2-4 sentences) for use by a health advisor. Do not address the patient directly.
+
+Patient data:
+{health_context[:2500]}
+
+Question: {user_message}
+
+Summary:"""
+
+    def generate_grounding(self, health_context: str, user_message: str, max_tokens: int = 200) -> str:
+        """
+        Generate an evidence-based grounding prompt from user stats and query.
+        Used in state-of-union: BioGPT produces this; TinyLlama uses it as context for the final response.
+        """
+        if not self.is_loaded:
+            if not self.load_model():
+                return ""
+        try:
+            prompt = self._build_grounding_prompt(health_context, user_message)
+            outputs = self.pipeline(
+                prompt,
+                max_new_tokens=min(max_tokens, self.model_config.get("max_new_tokens", 256)),
+                pad_token_id=self.tokenizer.eos_token_id,
+                return_full_text=False,
+            )
+            text = (outputs[0].get("generated_text") or "").strip()
+            for stop in ["Patient question:", "Summary:", "\n\n\n"]:
+                if stop in text:
+                    text = text.split(stop)[0].strip()
+            return text[:1200]
+        except Exception as e:
+            print(f"[LocalLLM] Grounding generation error: {e}")
+            return ""
+
     def _fallback_response(self, user_message: str, recommendations: str) -> str:
         """Fallback when model isn't available"""
         return f"""## WellnessAI Analysis
@@ -434,15 +483,28 @@ Is there anything specific you'd like me to elaborate on?
         }
 
 
-# Singleton instance
+# Singleton instances: primary (response) and grounding (evidence-based prompt)
 _local_llm_service = None
+_grounding_llm_service = None
 
-def get_local_llm_service(model_key: str = DEFAULT_MODEL) -> LocalLLMService:
-    """Get or create LocalLLMService singleton"""
+def get_local_llm_service(model_key: str = None) -> LocalLLMService:
+    """Get or create primary LocalLLMService (e.g. TinyLlama for final response)."""
     global _local_llm_service
+    if model_key is None:
+        model_key = DEFAULT_MODEL
     if _local_llm_service is None:
         _local_llm_service = LocalLLMService(model_key)
     return _local_llm_service
+
+
+def get_grounding_llm_service(model_key: str = None) -> LocalLLMService:
+    """Get or create grounding LocalLLMService (e.g. BioGPT for evidence-based prompt from stats)."""
+    global _grounding_llm_service
+    if model_key is None:
+        model_key = GROUNDING_MODEL
+    if _grounding_llm_service is None:
+        _grounding_llm_service = LocalLLMService(model_key)
+    return _grounding_llm_service
 
 
 def preload_model(model_key: str = DEFAULT_MODEL) -> bool:

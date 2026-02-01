@@ -23,8 +23,9 @@ from typing import Dict, Optional, List, Any
 from pydantic import ValidationError
 
 from .recommendation_engine import get_recommendation_engine, QueryIntent
-from .local_llm_service import get_local_llm_service
+from .local_llm_service import get_local_llm_service, get_grounding_llm_service
 from .models import UIComponent
+from .config import USE_STATE_OF_UNION
 
 # Optional external API imports (fallback only)
 try:
@@ -86,6 +87,8 @@ Be concise, supportive, and actionable. Use the pre-computed recommendations as 
         
         print("[AIService] Initialized")
         print(f"  - Local LLM: {'Enabled' if use_local_llm else 'Disabled'}")
+        if use_local_llm and USE_STATE_OF_UNION:
+            print("  - State-of-union: BioGPT grounds context → TinyLlama responds")
         print(f"  - OpenAI API: {'Available' if self.openai_client else 'Not configured'}")
         print(f"  - Anthropic API: {'Available' if self.anthropic_client else 'Not configured'}")
     
@@ -172,6 +175,16 @@ Ask only ONE question. Otherwise reply with normal text only."""
         if weather_data:
             weather = weather_data.get("weather_summary", {})
             health_context_text += f"\n\n**Weather:** {weather.get('temperature', 'N/A')}°C, {weather.get('condition', 'Unknown')}"
+
+        # Step 3b (state-of-union): BioGPT produces evidence-based prompt from stats + query; TinyLlama uses it for the final response
+        if USE_STATE_OF_UNION and self.use_local_llm and self.local_llm:
+            try:
+                grounding_service = get_grounding_llm_service()
+                grounding = grounding_service.generate_grounding(health_context_text, user_message)
+                if grounding and len(grounding.strip()) > 20:
+                    health_context_text += "\n\n**Evidence-based framing (from clinical analysis):**\n" + grounding.strip()
+            except Exception as e:
+                print(f"[AIService] State-of-union grounding error: {e}")
 
         # Step 4: Generate raw response
         response = None

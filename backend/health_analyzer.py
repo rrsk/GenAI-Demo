@@ -9,6 +9,13 @@ from datetime import datetime, timedelta
 
 from .config import WHOOP_DATA_PATH
 
+try:
+    from .ml_service import get_ml_service
+    from .lstm_service import get_lstm_service
+except ImportError:
+    get_ml_service = None
+    get_lstm_service = None
+
 
 class HealthAnalyzer:
     """Analyzes Whoop health data to extract insights and patterns"""
@@ -260,21 +267,28 @@ class HealthAnalyzer:
         return risks
     
     def get_comprehensive_health_context(self, user_id: str) -> Dict:
-        """Get comprehensive health context for AI recommendations"""
+        """Get comprehensive health context for AI recommendations, including LSTM forecast"""
         profile = self.get_user_profile(user_id)
         recent_metrics = self.get_recent_health_metrics(user_id)
         sleep_patterns = self.analyze_sleep_patterns(user_id)
         recovery_patterns = self.analyze_recovery_patterns(user_id)
         activity_summary = self.get_activity_summary(user_id)
         health_risks = self.identify_health_risks(user_id)
-        
+        lstm_forecast = None
+        if get_ml_service and get_lstm_service:
+            try:
+                ml = get_ml_service()
+                lstm_forecast = get_lstm_service().get_forecast(user_id, ml.df)
+            except Exception:
+                pass
         return {
             "profile": profile,
             "recent_metrics": recent_metrics,
             "sleep_analysis": sleep_patterns,
             "recovery_analysis": recovery_patterns,
             "activity_summary": activity_summary,
-            "health_risks": health_risks
+            "health_risks": health_risks,
+            "lstm_forecast": lstm_forecast,
         }
     
     def get_all_user_ids(self, limit: int = 100) -> List[str]:

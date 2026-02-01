@@ -1850,7 +1850,6 @@ function updateCharts(trends, forecasts = []) {
 
     // Update Sleep Chart
     if (charts.sleep) {
-        // Calculate light sleep
         const lightSleep = trends.sleep_hours.map((total, i) => {
             const deep = trends.deep_sleep[i] || 0;
             const rem = trends.rem_sleep[i] || 0;
